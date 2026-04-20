@@ -5,6 +5,7 @@ dist/
 __pycache__/
 .pytest_cache/
 .mypy_cache/
+.turbo/
 .coverage
 coverage/
 .env
@@ -15,3 +16,6 @@ coverage/
 backend/.env
 frontend/.env
 *.pyc
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
