@@ -32,6 +32,8 @@ class Settings(BaseSettings):
         env_file=(
             str(Path(__file__).resolve().parents[2] / ".db.env"),
             str(Path(__file__).resolve().parents[2] / ".env"),
+            str(Path(__file__).resolve().parents[3] / ".db.env"),
+            str(Path(__file__).resolve().parents[3] / ".env"),
         ),
         extra="ignore",
     )
