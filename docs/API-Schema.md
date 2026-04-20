@@ -18,6 +18,11 @@
 - 时间字段统一使用 `YYYY-MM-DD`
 - 数值字段默认返回 JSON number，不返回字符串数字
 - 响应字段优先使用 snake_case
+- 数值精度由后端固定：
+  - `raw_vix` / `market_breadth` 来源字段保留到小数点后 2 位
+  - `index_valuation.pe_ntm` 保留到小数点后 4 位
+  - `vol_structure` 保留到小数点后 4 位
+  - 原始值为 `null` 时返回 `null`
 
 ## 2. 通用响应约定
 
@@ -139,7 +144,7 @@
     },
     "ndx": {
       "index_code": "NDX",
-      "display_name": "NASDAQ 100",
+      "display_name": "NASDAQ-100",
       "as_of_date": "2026-04-18",
       "above_20d_pct": 15.0,
       "above_50d_pct": 45.0,
@@ -339,7 +344,7 @@ Query params:
   },
   "ndx": {
     "index_code": "NDX",
-    "display_name": "NASDAQ 100",
+    "display_name": "NASDAQ-100",
     "as_of_date": "2026-04-18",
     "above_20d_pct": 15.0,
     "above_50d_pct": 45.0,
