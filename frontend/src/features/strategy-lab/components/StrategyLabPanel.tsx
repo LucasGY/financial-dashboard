@@ -54,6 +54,14 @@ export function StrategyLabPanel() {
   const [endDate, setEndDate] = useState(isoDate(today));
   const [windowsInput, setWindowsInput] = useState("5,20,60");
   const { submit, result, status, isSubmitting, error } = useStrategyLab();
+  const statusLabel = isSubmitting ? "RUNNING" : status.toUpperCase();
+  const statusClassName = isSubmitting
+    ? "border-sky-200 bg-sky-50 text-sky-700"
+    : status === "succeeded"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : status === "failed"
+        ? "border-rose-200 bg-rose-50 text-rose-700"
+        : "border-slate-200 bg-slate-50 text-slate-700";
 
   useEffect(() => {
     const inferredTicker = inferTargetTicker(prompt);
@@ -105,9 +113,9 @@ export function StrategyLabPanel() {
               输入策略描述，解析成受控规则，直接读取数据库指标与价格序列完成未来胜率和回报统计。
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right">
+          <div className={`rounded-2xl border px-4 py-3 text-right ${statusClassName}`}>
             <div className="text-xs uppercase tracking-[0.16em] text-slate-400">状态</div>
-            <div className="mt-2 text-sm font-semibold text-slate-700">{isSubmitting ? "Running" : status.toUpperCase()}</div>
+            <div className="mt-2 text-sm font-semibold">{statusLabel}</div>
           </div>
         </div>
 
