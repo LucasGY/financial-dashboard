@@ -33,3 +33,20 @@ class ValuationRow:
     trade_date: date
     index_name: str
     pe_ntm: Optional[Decimal]
+
+
+@dataclass(frozen=True)
+class InstrumentRow:
+    instrument_id: int
+    ticker: str
+    name: Optional[str]
+    asset_type: str
+    currency_code: str
+    is_active: int
+
+
+@dataclass(frozen=True)
+class PriceRow:
+    ticker: str
+    trade_date: date
+    adj_close_price: Decimal

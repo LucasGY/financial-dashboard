@@ -16,6 +16,7 @@ if str(BACKEND_DIR) not in sys.path:
 from app.core.config import get_settings
 
 FNG_DATA_URL = "https://raw.githubusercontent.com/whit3rabbit/fear-greed-data/main/fear-greed.csv"
+FNG_FALLBACK_URL = "https://raw.githubusercontent.com/gman4774/Fear_and_Greed_Index/master/all_fng_csv.csv"
 
 
 @dataclass(frozen=True)
@@ -59,27 +60,61 @@ def get_connection() -> pymysql.connections.Connection:
     )
 
 
+def fetch_spy_trading_dates(connection: pymysql.connections.Connection, start: str, end: str | None) -> set:
+    query = """
+        SELECT p.trade_date
+        FROM raw_equity_daily_price p
+        JOIN dim_instrument i ON i.instrument_id = p.instrument_id
+        WHERE i.ticker = 'SPY'
+          AND p.trade_date >= %s
+    """
+    params: list[object] = [start]
+    if end:
+        query += " AND p.trade_date <= %s"
+        params.append(end)
+    query += " ORDER BY p.trade_date"
+    with connection.cursor() as cursor:
+        cursor.execute(query, tuple(params))
+        return {row[0] for row in cursor.fetchall()}
+
+
 def normalize_value(value: object) -> int | None:
     if value is None or pd.isna(value):
         return None
     return int(round(float(value)))
 
 
-def load_rows(start: str, end: str | None) -> list[FngRow]:
-    frame = pd.read_csv(FNG_DATA_URL)
+def load_frame(url: str) -> pd.DataFrame:
+    frame = pd.read_csv(url)
     if "Date" not in frame.columns or "Fear Greed" not in frame.columns:
-        raise RuntimeError("Unexpected Fear & Greed dataset columns.")
-
+        raise RuntimeError(f"Unexpected Fear & Greed dataset columns from {url}.")
     frame["Date"] = pd.to_datetime(frame["Date"], errors="coerce").dt.date
     frame["Fear Greed"] = pd.to_numeric(frame["Fear Greed"], errors="coerce")
     frame = frame.dropna(subset=["Date", "Fear Greed"])
-    frame = frame[frame["Date"] >= pd.Timestamp(start).date()]
+    return frame[["Date", "Fear Greed"]]
+
+
+def load_rows(connection: pymysql.connections.Connection, start: str, end: str | None) -> list[FngRow]:
+    primary = load_frame(FNG_DATA_URL)
+    fallback = load_frame(FNG_FALLBACK_URL)
+
+    merged = primary.rename(columns={"Fear Greed": "primary_value"}).merge(
+        fallback.rename(columns={"Fear Greed": "fallback_value"}),
+        on="Date",
+        how="outer",
+    )
+    merged["Fear Greed"] = merged["primary_value"].combine_first(merged["fallback_value"])
+    merged = merged[["Date", "Fear Greed"]]
+    merged = merged[merged["Date"] >= pd.Timestamp(start).date()]
     if end:
-        frame = frame[frame["Date"] <= pd.Timestamp(end).date()]
-    frame = frame.sort_values("Date")
+        merged = merged[merged["Date"] <= pd.Timestamp(end).date()]
+
+    spy_trading_dates = fetch_spy_trading_dates(connection, start, end)
+    merged = merged[merged["Date"].isin(spy_trading_dates)]
+    merged = merged.sort_values("Date")
 
     rows: list[FngRow] = []
-    for _, item in frame.iterrows():
+    for _, item in merged.iterrows():
         value = normalize_value(item["Fear Greed"])
         if value is None:
             continue
@@ -118,12 +153,13 @@ def upsert_rows(connection: pymysql.connections.Connection, rows: list[FngRow], 
 
 def main() -> None:
     args = parse_args()
-    rows = load_rows(start=args.start, end=args.end)
     with get_connection() as connection:
+        rows = load_rows(connection=connection, start=args.start, end=args.end)
         affected_rows = upsert_rows(connection, rows, args.batch_size)
 
     print(f"Backfill completed: {args.start} -> {args.end or 'all available'}")
-    print(f"Source: {FNG_DATA_URL}")
+    print(f"Primary source: {FNG_DATA_URL}")
+    print(f"Fallback source: {FNG_FALLBACK_URL}")
     print(f"Downloaded rows: {len(rows)}")
     print(f"Affected rows: {affected_rows}")
 

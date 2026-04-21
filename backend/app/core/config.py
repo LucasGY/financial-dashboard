@@ -26,6 +26,22 @@ class Settings(BaseSettings):
         default="financial_dashboard",
         validation_alias=AliasChoices("FD_MARIADB_DATABASE", "DB_NAME"),
     )
+    llm_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("FD_LLM_API_KEY", "OPENAI_API_KEY"),
+    )
+    llm_base_url: str = Field(
+        default="https://api.openai.com/v1",
+        validation_alias=AliasChoices("FD_LLM_BASE_URL", "OPENAI_BASE_URL"),
+    )
+    llm_model: str = Field(
+        default="gpt-4o-mini",
+        validation_alias=AliasChoices("FD_LLM_MODEL", "OPENAI_MODEL"),
+    )
+    llm_provider: str = Field(
+        default="openai_compatible",
+        validation_alias=AliasChoices("FD_LLM_PROVIDER", "LLM_PROVIDER"),
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="FD_",

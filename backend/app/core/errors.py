@@ -24,3 +24,8 @@ class DataUnavailableError(AppError):
 class InternalError(AppError):
     def __init__(self, message: str = "internal server error") -> None:
         super().__init__("INTERNAL_ERROR", message, 500)
+
+
+class ConflictError(AppError):
+    def __init__(self, message: str) -> None:
+        super().__init__("CONFLICT", message, 409)

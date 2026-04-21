@@ -40,3 +40,31 @@ export async function getJson<T>(path: string, params?: Record<string, string | 
 
   return (await response.json()) as T;
 }
+
+export async function postJson<TResponse, TBody>(path: string, body: TBody): Promise<TResponse> {
+  const response = await fetch(buildUrl(path), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    let payload: ApiErrorPayload | undefined;
+    try {
+      payload = (await response.json()) as ApiErrorPayload;
+    } catch {
+      payload = undefined;
+    }
+
+    throw new ApiError(
+      payload?.error?.message || `Request failed with status ${response.status}`,
+      response.status,
+      payload?.error?.code
+    );
+  }
+
+  return (await response.json()) as TResponse;
+}
