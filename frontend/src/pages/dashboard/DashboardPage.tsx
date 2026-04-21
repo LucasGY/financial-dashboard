@@ -1,9 +1,10 @@
-import { Activity, BarChart2, TrendingUp } from "lucide-react";
+import { Activity, BarChart2, BrainCircuit, TrendingUp } from "lucide-react";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { BreadthCard } from "../../features/sentiment/components/BreadthCard";
 import { FearGreedCard } from "../../features/sentiment/components/FearGreedCard";
 import { VolatilityCard } from "../../features/sentiment/components/VolatilityCard";
+import { StrategyLabPanel } from "../../features/strategy-lab/components/StrategyLabPanel";
 import { useSentimentData } from "../../features/sentiment/hooks";
 import { ValuationCard } from "../../features/valuation/components/ValuationCard";
 
@@ -79,6 +80,17 @@ export function DashboardPage() {
             <ValuationCard index="SPX" title="S&P 500" />
             <ValuationCard index="NDX" title="NASDAQ-100" />
           </div>
+        </section>
+
+        <section className="space-y-5">
+          <SectionTitle
+            title="3. Strategy Lab"
+            subtitle="用自然语言描述策略，实时生成受控规则与代码，并输出未来窗口的胜率和回报统计。"
+            icon={BrainCircuit}
+            iconClassName="text-emerald-600"
+          />
+
+          <StrategyLabPanel />
         </section>
       </div>
     </main>
