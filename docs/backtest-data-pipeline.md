@@ -6,6 +6,7 @@
 
 - `SPY`
 - `QQQ`
+- `BRK-B`
 - `AAPL`
 - `MSFT`
 - `AMZN`
@@ -123,6 +124,14 @@ INNER JOIN dim_instrument i
 LEFT JOIN raw_vix v
   ON v.trade_date = p.trade_date
 WHERE i.ticker IN ('SPY', 'QQQ', 'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'NVDA', 'TSLA')
+  AND p.trade_date >= '2000-01-01'
+ORDER BY p.trade_date, i.ticker;
+```
+
+如果把伯克希尔也纳入股票池，查询条件改为：
+
+```sql
+WHERE i.ticker IN ('SPY', 'QQQ', 'BRK-B', 'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'NVDA', 'TSLA')
   AND p.trade_date >= '2000-01-01'
 ORDER BY p.trade_date, i.ticker;
 ```

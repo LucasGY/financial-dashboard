@@ -12,7 +12,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--tickers",
         default=None,
-        help="Comma-separated tickers. Default: SPY,QQQ and Magnificent 7.",
+        help="Comma-separated tickers. Default: SPY,QQQ,BRK-B and Magnificent 7.",
     )
     parser.add_argument(
         "--lookback-days",
