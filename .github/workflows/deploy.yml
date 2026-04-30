@@ -57,6 +57,7 @@ jobs:
     env:
       SERVER_APP_DIR: ${{ vars.SERVER_APP_DIR }}
       BACKEND_SERVICE_NAME: ${{ vars.BACKEND_SERVICE_NAME }}
+      REPOSITORY_URL: https://github.com/${{ github.repository }}.git
 
     steps:
       - name: Configure SSH
@@ -70,17 +71,24 @@ jobs:
         run: |
           APP_DIR_VALUE="${SERVER_APP_DIR:-}"
           BACKEND_SERVICE_VALUE="${BACKEND_SERVICE_NAME:-}"
+          REPOSITORY_URL_VALUE="$REPOSITORY_URL"
           APP_DIR_ESCAPED="$(printf '%q' "$APP_DIR_VALUE")"
           BACKEND_SERVICE_ESCAPED="$(printf '%q' "$BACKEND_SERVICE_VALUE")"
+          REPOSITORY_URL_ESCAPED="$(printf '%q' "$REPOSITORY_URL_VALUE")"
 
           ssh -i ~/.ssh/deploy_key \
             -o IdentitiesOnly=yes \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "SERVER_APP_DIR=$APP_DIR_ESCAPED BACKEND_SERVICE_NAME=$BACKEND_SERVICE_ESCAPED bash -se" <<'REMOTE'
+            "SERVER_APP_DIR=$APP_DIR_ESCAPED BACKEND_SERVICE_NAME=$BACKEND_SERVICE_ESCAPED REPOSITORY_URL=$REPOSITORY_URL_ESCAPED bash -se" <<'REMOTE'
           set -euo pipefail
 
           APP_DIR="${SERVER_APP_DIR:-/opt/financial-dashboard}"
           BACKEND_SERVICE="${BACKEND_SERVICE_NAME:-financial-dashboard-backend}"
+
+          if [ ! -d "$APP_DIR/.git" ]; then
+            sudo install -d -o "$USER" -g "$USER" "$APP_DIR"
+            git clone "$REPOSITORY_URL" "$APP_DIR"
+          fi
 
           cd "$APP_DIR"
 

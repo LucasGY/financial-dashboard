@@ -20,13 +20,14 @@ Production deploys are handled by GitHub Actions in `.github/workflows/deploy.ym
 
 ## Remote Server Assumptions
 
-- The repository already exists at `SERVER_APP_DIR`.
-- The SSH user can run `git fetch` and `git reset --hard origin/main` in that repository.
+- The SSH user can create or write `SERVER_APP_DIR`. If the repository is missing, the deploy workflow creates the directory and clones it.
+- The SSH user can run `git fetch` and `git reset --hard origin/main` in the repository.
 - Node.js/npm and Python 3 are installed on the server.
 - The backend runs under a systemd service named by `BACKEND_SERVICE_NAME`.
 - Nginx is already configured to serve HTTPS and the built frontend assets.
 - The database env file already exists on the server at `/opt/financial-dashboard/.db.env` or `/opt/financial-dashboard/backend/.db.env`.
 - The SSH user has sudo permission for:
+  - `install -d -o <SERVER_USER> -g <SERVER_USER> /opt/financial-dashboard`
   - `systemctl restart <BACKEND_SERVICE_NAME>`
   - `nginx -t`
   - `systemctl reload nginx`
