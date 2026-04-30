@@ -162,7 +162,7 @@ financial-dashboard/
 
 ### 4.1 `raw_fng`
 
-来源文件：[raw_fng.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/raw_fng.sql)
+来源文件：[raw_fng.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/backend/database/schema/raw_fng.sql)
 
 真实字段：
 
@@ -183,7 +183,7 @@ financial-dashboard/
 
 ### 4.2 `raw_vix`
 
-来源文件：[raw_vix.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/raw_vix.sql)
+来源文件：[raw_vix.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/backend/database/schema/raw_vix.sql)
 
 真实字段：
 
@@ -204,7 +204,7 @@ financial-dashboard/
 
 ### 4.3 `market_breadth`
 
-来源文件：[market_breadth.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/market_breadth.sql)
+来源文件：[market_breadth.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/backend/database/schema/market_breadth.sql)
 
 真实字段：
 
@@ -232,7 +232,7 @@ financial-dashboard/
 
 ### 4.4 `index_valuation`
 
-来源文件：[index_valuation.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/index_valuation.sql)
+来源文件：[index_valuation.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/backend/database/schema/index_valuation.sql)
 
 真实字段：
 
@@ -693,12 +693,13 @@ series[]
 
 ## 11. 配置与安全
 
-当前仓库中存在真实数据库配置文件：[.db.env](/Users/lucasgou/Desktop/projects/financial-dashboard/.db.env)
+本地和生产环境通过 `.db.env` 提供真实数据库配置，该文件不进入版本库。
 
 工程建议：
 
 - 将真实凭据移出版本库
 - 仓库内仅保留 `.env.example`
+- 生产环境将 `.db.env` 放在 `/opt/financial-dashboard/.db.env` 或 `/opt/financial-dashboard/backend/.db.env`
 - 后端从环境变量读取：
   - `DB_HOST`
   - `DB_PORT`

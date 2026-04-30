@@ -26,8 +26,8 @@
 
 DDL 文件：
 
-- [dim_instrument.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/dim_instrument.sql)
-- [raw_equity_daily_price.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/raw_equity_daily_price.sql)
+- [dim_instrument.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/backend/database/schema/dim_instrument.sql)
+- [raw_equity_daily_price.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/backend/database/schema/raw_equity_daily_price.sql)
 
 表职责：
 
@@ -68,7 +68,10 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-sql_files = [Path('dim_instrument.sql'), Path('raw_equity_daily_price.sql')]
+sql_files = [
+    Path('backend/database/schema/dim_instrument.sql'),
+    Path('backend/database/schema/raw_equity_daily_price.sql'),
+]
 
 conn = pymysql.connect(
     host=settings.mariadb_host,
