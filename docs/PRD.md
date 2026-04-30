@@ -8,10 +8,10 @@
 
 - 前端目标样式原型：[ideal-frontend.js](/Users/lucasgou/Desktop/projects/financial-dashboard/ideal-frontend.js)
 - MariaDB 真实表结构：
-  - [raw_fng.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/raw_fng.sql)
-  - [raw_vix.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/raw_vix.sql)
-  - [market_breadth.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/market_breadth.sql)
-  - [index_valuation.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/index_valuation.sql)
+  - [raw_fng.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/backend/database/schema/raw_fng.sql)
+  - [raw_vix.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/backend/database/schema/raw_vix.sql)
+  - [market_breadth.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/backend/database/schema/market_breadth.sql)
+  - [index_valuation.sql](/Users/lucasgou/Desktop/projects/financial-dashboard/backend/database/schema/index_valuation.sql)
 
 本期目标不是做交易系统，也不是做数据采集平台，而是做一个只读型、分析型、可快速扫描的金融数据终端。
 
@@ -360,4 +360,3 @@ Dashboard
 - 实时数据推送
 - 导出 PDF/Excel
 - 多市场扩展
-
