@@ -13,6 +13,7 @@ from app.repositories.raw_vix_repository import RawVixRepository
 from app.repositories.strategy_feature_repository import StrategyFeatureRepository
 from app.services.backtest_service import BacktestService
 from app.services.llm.providers.openai_compatible import OpenAICompatibleProvider
+from app.services.market_regime_service import MarketRegimeService
 from app.services.sandbox_service import SandboxService
 from app.services.sentiment_service import SentimentService
 from app.services.strategy_codegen_service import StrategyCodegenService
@@ -42,6 +43,13 @@ def get_sentiment_service(database: Database = Depends(get_database)) -> Sentime
 def get_valuation_service(database: Database = Depends(get_database)) -> ValuationService:
     return ValuationService(
         index_valuation_repository=IndexValuationRepository(database),
+    )
+
+
+def get_market_regime_service(database: Database = Depends(get_database)) -> MarketRegimeService:
+    return MarketRegimeService(
+        price_repository=PriceRepository(database),
+        strategy_feature_repository=StrategyFeatureRepository(database),
     )
 
 

@@ -1,6 +1,17 @@
 from app.services.sandbox_service import SandboxService
 
 
+def test_market_regime_stats_returns_forward_windows(client):
+    response = client.get("/api/v1/market-regime/overview")
+
+    assert response.status_code == 200
+    payload = response.json()["items"][0]
+    assert payload["ticker"] == "SPY"
+    assert payload["index_code"] == "SPX"
+    assert [item["window_days"] for item in payload["metrics"]] == [5, 30, 90, 252]
+    assert {item["key"] for item in payload["conditions"]} == {"fng", "vix", "breadth_50d", "ntm_pe"}
+
+
 def test_strategy_lab_run_success_and_result(client):
     response = client.post(
         "/api/v1/strategy-lab/runs",

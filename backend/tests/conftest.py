@@ -5,11 +5,12 @@ from decimal import Decimal
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.dependencies import get_sentiment_service, get_strategy_lab_service, get_valuation_service
+from app.api.dependencies import get_market_regime_service, get_sentiment_service, get_strategy_lab_service, get_valuation_service
 from app.main import create_app
 from app.repositories.models import BreadthRow, FearGreedRow, PriceRow, ValuationRow, VixRow
 from app.schemas.strategy_lab import StrategyLabResultResponse, StrategyLabRunRequest, StrategyRunResponse
 from app.services.backtest_service import BacktestService
+from app.services.market_regime_service import MarketRegimeService
 from app.services.sandbox_service import SandboxService
 from app.services.sentiment_service import SentimentService
 from app.services.strategy_codegen_service import StrategyCodegenService
@@ -66,6 +67,32 @@ class FakeMarketBreadthRepository:
                 above_200d_pct=Decimal("60.00"),
             ),
         ]
+
+    def fetch_recent(self, index_name: str, limit: int):
+        rows = [
+            BreadthRow(
+                trade_date=date(2026, 4, 16),
+                index_name=index_name,
+                above_20d_pct=Decimal("70.00"),
+                above_50d_pct=Decimal("60.00"),
+                above_200d_pct=Decimal("50.00"),
+            ),
+            BreadthRow(
+                trade_date=date(2026, 4, 17),
+                index_name=index_name,
+                above_20d_pct=Decimal("75.00"),
+                above_50d_pct=None,
+                above_200d_pct=Decimal("55.00"),
+            ),
+            BreadthRow(
+                trade_date=date(2026, 4, 18),
+                index_name=index_name,
+                above_20d_pct=Decimal("82.12"),
+                above_50d_pct=Decimal("65.00"),
+                above_200d_pct=None,
+            ),
+        ]
+        return rows[-limit:]
 
 
 class FakeIndexValuationRepository:
@@ -166,6 +193,10 @@ def client() -> Generator[TestClient, None, None]:
     )
     app.dependency_overrides[get_valuation_service] = lambda: ValuationService(
         index_valuation_repository=FakeIndexValuationRepository(),
+    )
+    app.dependency_overrides[get_market_regime_service] = lambda: MarketRegimeService(
+        price_repository=FakePriceRepository(),
+        strategy_feature_repository=FakeStrategyFeatureRepository(),
     )
     app.dependency_overrides[get_strategy_lab_service] = lambda: strategy_lab_service
 
