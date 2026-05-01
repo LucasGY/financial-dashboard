@@ -57,6 +57,7 @@ jobs:
     env:
       SERVER_APP_DIR: ${{ vars.SERVER_APP_DIR }}
       BACKEND_SERVICE_NAME: ${{ vars.BACKEND_SERVICE_NAME }}
+      FRONTEND_WEB_ROOT: ${{ vars.FRONTEND_WEB_ROOT }}
       REPOSITORY_URL: https://github.com/${{ github.repository }}.git
 
     steps:
@@ -71,19 +72,22 @@ jobs:
         run: |
           APP_DIR_VALUE="${SERVER_APP_DIR:-}"
           BACKEND_SERVICE_VALUE="${BACKEND_SERVICE_NAME:-}"
+          FRONTEND_WEB_ROOT_VALUE="${FRONTEND_WEB_ROOT:-}"
           REPOSITORY_URL_VALUE="$REPOSITORY_URL"
           APP_DIR_ESCAPED="$(printf '%q' "$APP_DIR_VALUE")"
           BACKEND_SERVICE_ESCAPED="$(printf '%q' "$BACKEND_SERVICE_VALUE")"
+          FRONTEND_WEB_ROOT_ESCAPED="$(printf '%q' "$FRONTEND_WEB_ROOT_VALUE")"
           REPOSITORY_URL_ESCAPED="$(printf '%q' "$REPOSITORY_URL_VALUE")"
 
           ssh -i ~/.ssh/deploy_key \
             -o IdentitiesOnly=yes \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "SERVER_APP_DIR=$APP_DIR_ESCAPED BACKEND_SERVICE_NAME=$BACKEND_SERVICE_ESCAPED REPOSITORY_URL=$REPOSITORY_URL_ESCAPED bash -se" <<'REMOTE'
+            "SERVER_APP_DIR=$APP_DIR_ESCAPED BACKEND_SERVICE_NAME=$BACKEND_SERVICE_ESCAPED FRONTEND_WEB_ROOT=$FRONTEND_WEB_ROOT_ESCAPED REPOSITORY_URL=$REPOSITORY_URL_ESCAPED bash -se" <<'REMOTE'
           set -euo pipefail
 
           APP_DIR="${SERVER_APP_DIR:-/opt/financial-dashboard}"
           BACKEND_SERVICE="${BACKEND_SERVICE_NAME:-financial-dashboard-backend}"
+          FRONTEND_ROOT="${FRONTEND_WEB_ROOT:-}"
 
           ensure_command() {
             if ! command -v "$1" >/dev/null 2>&1; then
@@ -127,6 +131,18 @@ jobs:
           cd "$APP_DIR/frontend"
           npm ci
           npm run build
+          if [ -z "$FRONTEND_ROOT" ]; then
+            if [ -d /var/www/financial-dashboard ]; then
+              FRONTEND_ROOT=/var/www/financial-dashboard
+            elif [ -d /var/www/html ]; then
+              FRONTEND_ROOT=/var/www/html
+            else
+              FRONTEND_ROOT="$APP_DIR/frontend/dist"
+            fi
+          fi
+          sudo install -d -o "$USER" -g "$USER" "$FRONTEND_ROOT"
+          sudo rm -rf "$FRONTEND_ROOT/assets"
+          sudo cp -R "$APP_DIR/frontend/dist/." "$FRONTEND_ROOT/"
 
           cd "$APP_DIR/backend"
           if [ ! -d .venv ]; then
