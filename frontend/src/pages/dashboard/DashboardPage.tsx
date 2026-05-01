@@ -1,4 +1,4 @@
-import { Activity, BarChart2, BrainCircuit, TrendingUp } from "lucide-react";
+import { Activity, BarChart2, BrainCircuit, LineChart, TrendingUp } from "lucide-react";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { BreadthCard } from "../../features/sentiment/components/BreadthCard";
@@ -6,6 +6,7 @@ import { FearGreedCard } from "../../features/sentiment/components/FearGreedCard
 import { VolatilityCard } from "../../features/sentiment/components/VolatilityCard";
 import { StrategyLabPanel } from "../../features/strategy-lab/components/StrategyLabPanel";
 import { useSentimentData } from "../../features/sentiment/hooks";
+import { RegimeStatsPanel } from "../../features/market-regime/components/RegimeStatsPanel";
 import { ValuationCard } from "../../features/valuation/components/ValuationCard";
 
 export function DashboardPage() {
@@ -53,16 +54,22 @@ export function DashboardPage() {
 
           <AsyncState isLoading={isLoading} error={error} isEmpty={isEmpty} emptyLabel="市场情绪数据暂不可用">
             {data ? (
-              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.08fr_0.92fr_0.9fr]">
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-4">
                 <FearGreedCard snapshot={data.overview.fear_greed} trend={data.fearGreedTrend} />
                 <VolatilityCard
                   vix={data.overview.vix}
                   volStructure={data.overview.vol_structure}
                   trend={data.volatilityTrend}
                 />
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-1">
-                  {breadthCards.length > 0 ? breadthCards.map((item) => <BreadthCard key={item.index_code} snapshot={item} />) : null}
-                </div>
+                {breadthCards.length > 0
+                  ? breadthCards.map((item) => (
+                      <BreadthCard
+                        key={item.index_code}
+                        snapshot={item}
+                        trend={item.index_code === "SPX" ? data.breadthTrend.spx : data.breadthTrend.ndx}
+                      />
+                    ))
+                  : null}
               </div>
             ) : null}
           </AsyncState>
@@ -84,7 +91,18 @@ export function DashboardPage() {
 
         <section className="space-y-5">
           <SectionTitle
-            title="3. Strategy Lab"
+            title="3. 当前状态回测"
+            subtitle="按最新收盘日的恐贪、VIX、50D 市场宽度和 NTM PE 分位向量寻找历史近邻，统计收盘买入后的远期表现。"
+            icon={LineChart}
+            iconClassName="text-cyan-600"
+          />
+
+          <RegimeStatsPanel />
+        </section>
+
+        <section className="space-y-5">
+          <SectionTitle
+            title="4. Strategy Lab"
             subtitle="用自然语言描述策略，实时生成受控规则与代码，并输出未来窗口的胜率和回报统计。"
             icon={BrainCircuit}
             iconClassName="text-emerald-600"

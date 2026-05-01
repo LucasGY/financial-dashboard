@@ -31,6 +31,18 @@ def test_volatility_trend_handles_null_and_zero(client):
     assert payload["vol_structure_current"] == 1.8629
 
 
+def test_breadth_trend_returns_three_series(client):
+    response = client.get("/api/v1/sentiment/breadth/trend?index=SPX&range=30d")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["index_code"] == "SPX"
+    assert payload["as_of_date"] == "2026-04-18"
+    assert payload["above_20d_series"][-1]["value"] == 82.12
+    assert payload["above_50d_series"][1]["value"] is None
+    assert payload["above_200d_series"][-1]["value"] is None
+
+
 def test_invalid_sentiment_range_returns_unified_error(client):
     response = client.get("/api/v1/sentiment/fear-greed/trend?range=90d")
 

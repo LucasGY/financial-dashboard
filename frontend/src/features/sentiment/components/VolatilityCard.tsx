@@ -39,7 +39,7 @@ function MetricBlock({
 
 export function VolatilityCard({ vix, volStructure, trend }: VolatilityCardProps) {
   return (
-    <section className="rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur sm:p-6">
+    <section className="flex h-full flex-col rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-slate-500">波动率指标</p>
@@ -50,7 +50,7 @@ export function VolatilityCard({ vix, volStructure, trend }: VolatilityCardProps
         </div>
       </div>
 
-      <div className="mt-5 space-y-4">
+      <div className="mt-5 flex-1 space-y-4">
         <MetricBlock title="VIX (恐慌指数)" value={vix.value ?? trend.vix_current} data={trend.vix_series} color="#f59e0b" />
         <MetricBlock
           title="VVIX / VIX / 3.5 (波动率结构)"

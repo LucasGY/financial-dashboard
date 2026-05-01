@@ -24,6 +24,16 @@ class BreadthOverview(APIModel):
     ndx: Optional[BreadthSnapshot]
 
 
+class BreadthTrendResponse(APIModel):
+    index_code: str
+    display_name: str
+    range: str
+    as_of_date: Optional[date]
+    above_20d_series: list[TimeSeriesPoint]
+    above_50d_series: list[TimeSeriesPoint]
+    above_200d_series: list[TimeSeriesPoint]
+
+
 class SentimentOverviewResponse(APIModel):
     fear_greed: FearGreedSnapshot
     vix: ValueSnapshot

@@ -11,6 +11,7 @@ from app.repositories.raw_vix_repository import RawVixRepository
 from app.schemas.common import BreadthSnapshot, TimeSeriesPoint
 from app.schemas.sentiment import (
     BreadthOverview,
+    BreadthTrendResponse,
     FearGreedSnapshot,
     FearGreedTrendResponse,
     SentimentOverviewResponse,
@@ -18,6 +19,11 @@ from app.schemas.sentiment import (
     VolatilityTrendResponse,
 )
 from app.services.mapping_service import get_display_name, map_breadth_index, map_fng_label_color
+
+BREADTH_NAME_BY_INDEX_CODE = {
+    "SPX": "SP500",
+    "NDX": "NDX100",
+}
 
 
 class SentimentService:
@@ -100,6 +106,28 @@ class SentimentService:
     def get_breadth(self) -> BreadthOverview:
         rows = self._market_breadth_repository.fetch_latest_snapshots()
         return self._build_breadth_overview(rows)
+
+    def get_breadth_trend(self, index_code: str, range_value: str) -> BreadthTrendResponse:
+        limit = self._resolve_range(range_value)
+        rows = self._market_breadth_repository.fetch_recent(BREADTH_NAME_BY_INDEX_CODE[index_code], limit)
+        return BreadthTrendResponse(
+            index_code=index_code,
+            display_name=get_display_name(index_code),
+            range=range_value,
+            as_of_date=rows[-1].trade_date if rows else None,
+            above_20d_series=[
+                TimeSeriesPoint(trade_date=row.trade_date, value=quantize_optional(row.above_20d_pct, 2))
+                for row in rows
+            ],
+            above_50d_series=[
+                TimeSeriesPoint(trade_date=row.trade_date, value=quantize_optional(row.above_50d_pct, 2))
+                for row in rows
+            ],
+            above_200d_series=[
+                TimeSeriesPoint(trade_date=row.trade_date, value=quantize_optional(row.above_200d_pct, 2))
+                for row in rows
+            ],
+        )
 
     @staticmethod
     def _resolve_range(range_value: str) -> int:

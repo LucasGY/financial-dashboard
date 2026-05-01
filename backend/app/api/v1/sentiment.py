@@ -3,7 +3,13 @@ from typing import Literal
 from fastapi import APIRouter, Depends
 
 from app.api.dependencies import get_sentiment_service
-from app.schemas.sentiment import BreadthOverview, FearGreedTrendResponse, SentimentOverviewResponse, VolatilityTrendResponse
+from app.schemas.sentiment import (
+    BreadthOverview,
+    BreadthTrendResponse,
+    FearGreedTrendResponse,
+    SentimentOverviewResponse,
+    VolatilityTrendResponse,
+)
 from app.services.sentiment_service import SentimentService
 
 router = APIRouter()
@@ -33,3 +39,12 @@ def get_volatility_trend(
 @router.get("/breadth", response_model=BreadthOverview)
 def get_breadth(service: SentimentService = Depends(get_sentiment_service)) -> BreadthOverview:
     return service.get_breadth()
+
+
+@router.get("/breadth/trend", response_model=BreadthTrendResponse)
+def get_breadth_trend(
+    index: Literal["SPX", "NDX"],
+    range: Literal["30d"] = "30d",
+    service: SentimentService = Depends(get_sentiment_service),
+) -> BreadthTrendResponse:
+    return service.get_breadth_trend(index, range)

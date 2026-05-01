@@ -18,3 +18,20 @@ class MarketBreadthRepository(BaseRepository):
             """
         )
         return [BreadthRow(**row) for row in rows]
+
+    def fetch_recent(self, index_name: str, limit: int) -> list[BreadthRow]:
+        rows = self._fetch_all(
+            """
+            SELECT trade_date, index_name, above_20d_pct, above_50d_pct, above_200d_pct
+            FROM (
+                SELECT trade_date, index_name, above_20d_pct, above_50d_pct, above_200d_pct
+                FROM market_breadth
+                WHERE index_name = %s
+                ORDER BY trade_date DESC
+                LIMIT %s
+            ) recent
+            ORDER BY trade_date ASC
+            """,
+            (index_name, limit),
+        )
+        return [BreadthRow(**row) for row in rows]

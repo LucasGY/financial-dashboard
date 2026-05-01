@@ -25,6 +25,16 @@ export type BreadthSnapshot = {
   above_200d_pct: number | null;
 };
 
+export type BreadthTrendResponse = {
+  index_code: "SPX" | "NDX";
+  display_name: string;
+  range: string;
+  as_of_date: string | null;
+  above_20d_series: TimeSeriesPoint[];
+  above_50d_series: TimeSeriesPoint[];
+  above_200d_series: TimeSeriesPoint[];
+};
+
 export type SentimentOverviewResponse = {
   fear_greed: FearGreedSnapshot;
   vix: ValueSnapshot;

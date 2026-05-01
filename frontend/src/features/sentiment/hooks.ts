@@ -1,18 +1,24 @@
 import { useAsyncData } from "../../lib/hooks";
-import { getFearGreedTrend, getSentimentOverview, getVolatilityTrend } from "./api";
+import { getBreadthTrend, getFearGreedTrend, getSentimentOverview, getVolatilityTrend } from "./api";
 
 export function useSentimentData() {
   return useAsyncData(async () => {
-    const [overview, fearGreedTrend, volatilityTrend] = await Promise.all([
+    const [overview, fearGreedTrend, volatilityTrend, spxBreadthTrend, ndxBreadthTrend] = await Promise.all([
       getSentimentOverview(),
       getFearGreedTrend(),
-      getVolatilityTrend()
+      getVolatilityTrend(),
+      getBreadthTrend("SPX"),
+      getBreadthTrend("NDX")
     ]);
 
     return {
       overview,
       fearGreedTrend,
-      volatilityTrend
+      volatilityTrend,
+      breadthTrend: {
+        spx: spxBreadthTrend,
+        ndx: ndxBreadthTrend
+      }
     };
   }, []);
 }

@@ -1,9 +1,16 @@
+import { useMemo, useState } from "react";
+import { Sparkline } from "../../../components/charts/Sparkline";
 import { formatCompactDate, formatPercent } from "../../../lib/format";
-import type { BreadthSnapshot } from "../types";
+import type { BreadthSnapshot, BreadthTrendResponse, TimeSeriesPoint } from "../types";
 
 type BreadthCardProps = {
   snapshot: BreadthSnapshot;
+  trend?: BreadthTrendResponse;
 };
+
+type BreadthPeriod = "20D" | "50D" | "200D";
+
+const PERIODS: BreadthPeriod[] = ["20D", "50D", "200D"];
 
 const getValueClassName = (value: number | null) => {
   if (value === null) {
@@ -21,19 +28,35 @@ const getValueClassName = (value: number | null) => {
   return "text-slate-800";
 };
 
-export function BreadthCard({ snapshot }: BreadthCardProps) {
+const seriesByPeriod = (trend: BreadthTrendResponse | undefined, period: BreadthPeriod): TimeSeriesPoint[] => {
+  if (!trend) {
+    return [];
+  }
+
+  if (period === "20D") {
+    return trend.above_20d_series;
+  }
+  if (period === "50D") {
+    return trend.above_50d_series;
+  }
+  return trend.above_200d_series;
+};
+
+export function BreadthCard({ snapshot, trend }: BreadthCardProps) {
+  const [selectedPeriod, setSelectedPeriod] = useState<BreadthPeriod>("50D");
   const metrics = [
     { label: "20D", value: snapshot.above_20d_pct },
     { label: "50D", value: snapshot.above_50d_pct },
     { label: "200D", value: snapshot.above_200d_pct }
   ];
+  const selectedSeries = useMemo(() => seriesByPeriod(trend, selectedPeriod), [trend, selectedPeriod]);
 
   return (
-    <section className="rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur sm:p-6">
+    <section className="flex h-full flex-col rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-slate-500">{snapshot.display_name}</p>
-          <h3 className="mt-2 font-display text-xl font-semibold text-slate-950">Market Breadth</h3>
+          <p className="text-sm font-semibold text-slate-500">Market Breadth</p>
+          <h3 className="mt-2 font-display text-xl font-semibold text-slate-950">{snapshot.display_name}</h3>
         </div>
         <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
           {formatCompactDate(snapshot.as_of_date)}
@@ -47,6 +70,38 @@ export function BreadthCard({ snapshot }: BreadthCardProps) {
             <div className={`metric-number mt-3 text-2xl font-semibold ${getValueClassName(metric.value)}`}>{formatPercent(metric.value, 0)}</div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-auto border-t border-slate-100 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">30D Timeline</div>
+            <div className="mt-1 text-sm font-medium text-slate-600">{selectedPeriod} above moving average</div>
+          </div>
+          <div className="flex rounded-full border border-slate-200 bg-slate-50 p-1">
+            {PERIODS.map((period) => (
+              <button
+                key={period}
+                type="button"
+                onClick={() => setSelectedPeriod(period)}
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${
+                  selectedPeriod === period ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                {period}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <Sparkline
+            data={selectedSeries.map((item) => item.value)}
+            labels={selectedSeries.map((item) => formatCompactDate(item.trade_date))}
+            color="#0891b2"
+            height={76}
+          />
+        </div>
       </div>
     </section>
   );
