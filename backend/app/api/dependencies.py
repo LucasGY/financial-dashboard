@@ -12,6 +12,7 @@ from app.repositories.raw_fng_repository import RawFngRepository
 from app.repositories.raw_vix_repository import RawVixRepository
 from app.repositories.strategy_feature_repository import StrategyFeatureRepository
 from app.services.backtest_service import BacktestService
+from app.services.entity_dynamics_service import EntityDynamicsService
 from app.services.llm.providers.openai_compatible import OpenAICompatibleProvider
 from app.services.market_regime_service import MarketRegimeService
 from app.services.sandbox_service import SandboxService
@@ -66,3 +67,7 @@ def get_strategy_lab_service(database: Database = Depends(get_database)) -> Stra
         ),
         run_store=get_strategy_run_store(),
     )
+
+
+def get_entity_dynamics_service() -> EntityDynamicsService:
+    return EntityDynamicsService(get_settings().second_brain_path)
