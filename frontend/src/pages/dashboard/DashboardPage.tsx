@@ -1,4 +1,5 @@
-import { Activity, BarChart2, BrainCircuit, LineChart, TrendingUp } from "lucide-react";
+import { Activity, BarChart2, BrainCircuit, LineChart, Radio, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { BreadthCard } from "../../features/sentiment/components/BreadthCard";
@@ -31,7 +32,7 @@ export function DashboardPage() {
                 实时情绪监控与核心宽基估值追踪，直接消费后端统一口径接口，减少首屏判断成本。
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:max-w-sm sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3 sm:max-w-sm lg:max-w-none lg:grid-cols-3">
               <div className="rounded-2xl border border-white/12 bg-white/10 px-4 py-3">
                 <div className="text-xs uppercase tracking-[0.18em] text-blue-100">情绪模块</div>
                 <div className="mt-2 text-lg font-semibold">Fear &amp; Greed / VIX</div>
@@ -40,6 +41,16 @@ export function DashboardPage() {
                 <div className="text-xs uppercase tracking-[0.18em] text-blue-100">估值模块</div>
                 <div className="mt-2 text-lg font-semibold">SPX / NDX Timeline</div>
               </div>
+              <Link
+                to="/entities"
+                className="col-span-2 lg:col-span-1 rounded-2xl border border-white/12 bg-white/10 px-4 py-3 hover:bg-white/20 transition-colors"
+              >
+                <div className="flex items-center gap-1.5 text-xs uppercase tracking-[0.18em] text-blue-100">
+                  <Radio className="size-3" />
+                  实体追踪
+                </div>
+                <div className="mt-2 text-lg font-semibold">Entity Dynamics →</div>
+              </Link>
             </div>
           </div>
         </header>

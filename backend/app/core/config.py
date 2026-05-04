@@ -42,6 +42,10 @@ class Settings(BaseSettings):
         default="openai_compatible",
         validation_alias=AliasChoices("FD_LLM_PROVIDER", "LLM_PROVIDER"),
     )
+    second_brain_path: str = Field(
+        default="/Users/lucasgou/Desktop/projects/second-brain",
+        validation_alias=AliasChoices("FD_SECOND_BRAIN_PATH", "SECOND_BRAIN_PATH"),
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="FD_",
