@@ -11,7 +11,7 @@ export function EntitiesPage() {
     <div className="min-h-screen bg-[#F7F9FB] transition-colors dark:bg-slate-950 dark:text-slate-100">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {/* Header */}
-        <header className="mb-6 overflow-hidden rounded-[32px] border border-white/70 bg-[linear-gradient(135deg,#0f172a_0%,#172554_48%,#1d4ed8_100%)] px-6 py-7 text-white shadow-panel dark:border-slate-800 dark:bg-[linear-gradient(135deg,#020617_0%,#0f172a_54%,#1e293b_100%)] sm:px-8">
+        <header className="mb-6 overflow-hidden rounded-[32px] border border-white/70 bg-[linear-gradient(135deg,#0f172a_0%,#172554_48%,#1d4ed8_100%)] px-6 py-7 text-white shadow-panel dark:!border-slate-800 dark:bg-[linear-gradient(135deg,#020617_0%,#111827_46%,#78350f_100%)] sm:px-8">
           <div className="flex items-center justify-between">
             <div>
               <Link

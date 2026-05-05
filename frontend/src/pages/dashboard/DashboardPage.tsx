@@ -20,7 +20,7 @@ export function DashboardPage() {
   return (
     <main className="min-h-screen px-4 py-6 transition-colors dark:bg-slate-950 dark:text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-8">
-        <header className="overflow-hidden rounded-[32px] border border-white/70 bg-[linear-gradient(135deg,#0f172a_0%,#172554_48%,#1d4ed8_100%)] px-6 py-7 text-white shadow-panel dark:border-slate-800 dark:bg-[linear-gradient(135deg,#020617_0%,#0f172a_54%,#1e293b_100%)] sm:px-8">
+        <header className="overflow-hidden rounded-[32px] border border-white/70 bg-[linear-gradient(135deg,#0f172a_0%,#172554_48%,#1d4ed8_100%)] px-6 py-7 text-white shadow-panel dark:!border-slate-800 dark:bg-[linear-gradient(135deg,#020617_0%,#111827_46%,#78350f_100%)] sm:px-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">
