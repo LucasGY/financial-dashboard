@@ -107,16 +107,25 @@ export function GaugeChart({ value }: GaugeChartProps) {
             y1={pointerBaseCenter.y}
             x2={pointerHeadBaseCenter.x}
             y2={pointerHeadBaseCenter.y}
-            stroke="#1f2937"
             strokeWidth="4"
             strokeLinecap="round"
+            className="stroke-slate-800 dark:stroke-slate-100"
           />
-          <polygon points={`${pointerHeadLeft.x},${pointerHeadLeft.y} ${pointerHeadRight.x},${pointerHeadRight.y} ${pointerTip.x},${pointerTip.y}`} fill="#1f2937" />
+          <polygon
+            points={`${pointerHeadLeft.x},${pointerHeadLeft.y} ${pointerHeadRight.x},${pointerHeadRight.y} ${pointerTip.x},${pointerTip.y}`}
+            className="fill-slate-800 dark:fill-slate-100"
+          />
         </g>
 
-        <circle cx={cx} cy={hubCenterY} r={hubRadius} fill="white" style={{ filter: "drop-shadow(0px 4px 12px rgba(15, 23, 42, 0.12))" }} />
-        <circle cx={cx} cy={hubCenterY} r={hubRadius - 0.75} fill="none" stroke="#e5e7eb" strokeWidth="1.5" />
-        <text x={cx} y={hubCenterY} textAnchor="middle" dominantBaseline="central" className="metric-number fill-slate-950 text-3xl font-extrabold">
+        <circle
+          cx={cx}
+          cy={hubCenterY}
+          r={hubRadius}
+          className="fill-white dark:fill-slate-900"
+          style={{ filter: "drop-shadow(0px 4px 12px rgba(15, 23, 42, 0.12))" }}
+        />
+        <circle cx={cx} cy={hubCenterY} r={hubRadius - 0.75} fill="none" strokeWidth="1.5" className="stroke-slate-200 dark:stroke-slate-600" />
+        <text x={cx} y={hubCenterY} textAnchor="middle" dominantBaseline="central" className="metric-number fill-slate-950 text-3xl font-extrabold dark:fill-slate-50">
           {value ?? "--"}
         </text>
       </svg>
