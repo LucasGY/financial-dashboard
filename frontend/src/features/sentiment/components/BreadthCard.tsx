@@ -25,7 +25,7 @@ const getValueClassName = (value: number | null) => {
     return "text-rose-600";
   }
 
-  return "text-slate-800";
+    return "text-slate-800 dark:text-slate-200";
 };
 
 const seriesByPeriod = (trend: BreadthTrendResponse | undefined, period: BreadthPeriod): TimeSeriesPoint[] => {
@@ -52,40 +52,40 @@ export function BreadthCard({ snapshot, trend }: BreadthCardProps) {
   const selectedSeries = useMemo(() => seriesByPeriod(trend, selectedPeriod), [trend, selectedPeriod]);
 
   return (
-    <section className="flex h-full flex-col rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur sm:p-6">
+    <section className="flex h-full flex-col rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur dark:border-white/10 dark:bg-slate-900/86 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-slate-500">Market Breadth</p>
-          <h3 className="mt-2 font-display text-xl font-semibold text-slate-950">{snapshot.display_name}</h3>
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Market Breadth</p>
+          <h3 className="mt-2 font-display text-xl font-semibold text-slate-950 dark:text-slate-50">{snapshot.display_name}</h3>
         </div>
-        <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+        <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-400">
           {formatCompactDate(snapshot.as_of_date)}
         </div>
       </div>
 
       <div className="mt-5 grid grid-cols-3 gap-3">
         {metrics.map((metric) => (
-          <div key={metric.label} className="rounded-2xl bg-slate-50 px-3 py-4 text-center">
-            <div className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">{metric.label}</div>
+          <div key={metric.label} className="rounded-2xl bg-slate-50 px-3 py-4 text-center dark:bg-slate-950/58">
+            <div className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{metric.label}</div>
             <div className={`metric-number mt-3 text-2xl font-semibold ${getValueClassName(metric.value)}`}>{formatPercent(metric.value, 0)}</div>
           </div>
         ))}
       </div>
 
-      <div className="mt-auto border-t border-slate-100 pt-4">
+      <div className="mt-auto border-t border-slate-100 pt-4 dark:border-white/10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">30D Timeline</div>
-            <div className="mt-1 text-sm font-medium text-slate-600">{selectedPeriod} above moving average</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">30D Timeline</div>
+            <div className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-400">{selectedPeriod} above moving average</div>
           </div>
-          <div className="flex rounded-full border border-slate-200 bg-slate-50 p-1">
+          <div className="flex rounded-full border border-slate-200 bg-slate-50 p-1 dark:border-white/10 dark:bg-slate-950/70">
             {PERIODS.map((period) => (
               <button
                 key={period}
                 type="button"
                 onClick={() => setSelectedPeriod(period)}
                 className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${
-                  selectedPeriod === period ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-900"
+                  selectedPeriod === period ? "bg-white text-blue-700 shadow-sm dark:bg-amber-400 dark:text-slate-950" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
                 {period}

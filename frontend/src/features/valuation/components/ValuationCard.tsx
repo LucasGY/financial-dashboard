@@ -22,24 +22,24 @@ export function ValuationCard({ index, title }: ValuationCardProps) {
   return (
     <AsyncState isLoading={isLoading} error={error} isEmpty={isEmpty} emptyLabel={`${title} 暂无估值数据`}>
       {data ? (
-        <section className="flex h-full flex-col rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur sm:p-6">
+        <section className="flex h-full flex-col rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur dark:border-white/10 dark:bg-slate-900/86 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-slate-500">{title}</p>
-              <h3 className="mt-2 font-display text-xl font-semibold text-slate-950">PE (NTM) 估值</h3>
-              <p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{title}</p>
+              <h3 className="mt-2 font-display text-xl font-semibold text-slate-950 dark:text-slate-50">PE (NTM) 估值</h3>
+              <p className="mt-2 flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400">
                 <AlertCircle className="size-4" />
                 最新日期 {data.as_of_date ? formatCompactDate(data.as_of_date) : "--"}
               </p>
             </div>
-            <div className="flex rounded-full border border-slate-200 bg-slate-50 p-1">
+            <div className="flex rounded-full border border-slate-200 bg-slate-50 p-1 dark:border-white/10 dark:bg-slate-950/70">
               {WINDOWS.map((item) => (
                 <button
                   key={item}
                   type="button"
                   onClick={() => setWindow(item)}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                    window === item ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"
+                    window === item ? "bg-white text-blue-700 shadow-sm dark:bg-amber-400 dark:text-slate-950" : "text-slate-500 dark:text-slate-400"
                   }`}
                 >
                   {item}
@@ -49,12 +49,12 @@ export function ValuationCard({ index, title }: ValuationCardProps) {
           </div>
 
           <div className="mt-6 flex items-end gap-3">
-            <div className="metric-number text-4xl font-semibold text-slate-950">{formatNumber(data.current_value, 1)}</div>
+            <div className="metric-number text-4xl font-semibold text-slate-950 dark:text-slate-50">{formatNumber(data.current_value, 1)}</div>
             <div className="pb-1">
-              <div className="text-xs text-slate-500">当前处于 {data.window.toUpperCase()}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">当前处于 {data.window.toUpperCase()}</div>
               <div
                 className={`metric-number text-sm font-semibold ${
-                  (data.percentile ?? 0) > 80 ? "text-rose-600" : (data.percentile ?? 0) < 20 ? "text-emerald-600" : "text-slate-700"
+                  (data.percentile ?? 0) > 80 ? "text-rose-600" : (data.percentile ?? 0) < 20 ? "text-emerald-600" : "text-slate-700 dark:text-slate-200"
                 }`}
               >
                 {formatNumber(data.percentile, 1)}% 分位

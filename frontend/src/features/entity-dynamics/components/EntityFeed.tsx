@@ -77,9 +77,9 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col">
+    <div className="flex flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900/86">
       {/* Filter area */}
-      <div className="mb-6 border-b border-slate-100 pb-5">
+      <div className="mb-6 border-b border-slate-100 pb-5 dark:border-white/10">
         <div className="flex flex-wrap gap-2 mb-3">
           {CATEGORIES.map((cat) => (
             <button
@@ -87,8 +87,8 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
               onClick={() => handleCategoryClick(cat.id)}
               className={`px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors ${
                 activeCategory === cat.id
-                  ? "bg-slate-800 text-white shadow-sm"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  ? "bg-slate-800 text-white shadow-sm dark:bg-amber-400 dark:text-slate-950"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-950/70 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
               }`}
             >
               {cat.label}
@@ -102,8 +102,8 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
               onClick={() => setActiveEntity("all")}
               className={`px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
                 activeEntity === "all"
-                  ? "border-slate-800 text-slate-800 bg-slate-50"
-                  : "border-slate-200 text-slate-500 hover:border-slate-400"
+                  ? "border-slate-800 text-slate-800 bg-slate-50 dark:border-amber-400 dark:bg-amber-400/10 dark:text-amber-300"
+                  : "border-slate-200 text-slate-500 hover:border-slate-400 dark:border-white/10 dark:text-slate-400 dark:hover:border-white/30"
               }`}
             >
               全部
@@ -117,10 +117,10 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
                 disabled={!availableEntityOptions.has(entity)}
                 className={`px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
                   activeEntity === entity
-                    ? "border-blue-500 text-blue-600 bg-blue-50"
+                    ? "border-blue-500 text-blue-600 bg-blue-50 dark:border-amber-400 dark:bg-amber-400/10 dark:text-amber-300"
                     : !availableEntityOptions.has(entity)
-                      ? "border-slate-100 text-slate-300 bg-slate-50 cursor-not-allowed"
-                    : "border-slate-200 text-slate-500 hover:border-slate-400"
+                      ? "border-slate-100 text-slate-300 bg-slate-50 cursor-not-allowed dark:border-white/5 dark:bg-slate-950/30 dark:text-slate-700"
+                    : "border-slate-200 text-slate-500 hover:border-slate-400 dark:border-white/10 dark:text-slate-400 dark:hover:border-white/30"
                 }`}
               >
                 {entity}
@@ -132,18 +132,18 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
 
       {/* Timeline */}
       <div className="relative">
-        <div className="absolute left-[11px] top-4 bottom-0 w-[2px] bg-slate-100" />
+        <div className="absolute left-[11px] top-4 bottom-0 w-[2px] bg-slate-100 dark:bg-white/10" />
 
         {isLoading && (
-          <div className="pl-8 py-10 text-center text-slate-400 text-sm">加载中…</div>
+          <div className="pl-8 py-10 text-center text-slate-400 text-sm dark:text-slate-500">加载中…</div>
         )}
 
         {error && (
-          <div className="pl-8 py-10 text-center text-red-400 text-sm">加载失败，请检查后端服务</div>
+          <div className="pl-8 py-10 text-center text-red-400 text-sm dark:text-red-300">加载失败，请检查后端服务</div>
         )}
 
         {!isLoading && !error && filteredItems.length === 0 && (
-          <div className="pl-8 py-10 text-center text-slate-400 text-sm">没有找到相关的动态内容</div>
+          <div className="pl-8 py-10 text-center text-slate-400 text-sm dark:text-slate-500">没有找到相关的动态内容</div>
         )}
 
         <div className="space-y-3 pt-1 pb-4">
@@ -176,7 +176,7 @@ function FeedCard({
   return (
     <div className="relative pl-8 group cursor-pointer" onClick={onClick}>
       <div
-        className={`absolute left-[7px] top-[18px] w-2.5 h-2.5 rounded-full ring-2 ring-white z-10 transition-transform group-hover:scale-110 ${
+        className={`absolute left-[7px] top-[18px] z-10 w-2.5 h-2.5 rounded-full ring-2 ring-white transition-transform group-hover:scale-110 dark:ring-slate-950 ${
           today ? "bg-green-500" : "bg-slate-400"
         }`}
       />
@@ -184,13 +184,13 @@ function FeedCard({
       <div
         className={`border rounded-xl p-3.5 transition-all duration-200 ${
           isSelected
-            ? "bg-blue-50/60 border-blue-300 shadow-sm"
-            : "bg-white border-slate-100/60 hover:shadow-sm hover:bg-slate-50/50 group-hover:border-blue-200"
+            ? "bg-blue-50/60 border-blue-300 shadow-sm dark:border-amber-400/60 dark:bg-amber-400/10"
+            : "bg-white border-slate-100/60 hover:shadow-sm hover:bg-slate-50/50 group-hover:border-blue-200 dark:border-white/10 dark:bg-slate-950/40 dark:hover:bg-slate-900 dark:group-hover:border-amber-400/40"
         }`}
       >
         <div className="flex justify-between items-start mb-1.5">
           <div className="flex items-center gap-2.5">
-            <span className="text-[11px] font-mono text-slate-400 flex items-center">
+            <span className="text-[11px] font-mono text-slate-400 flex items-center dark:text-slate-500">
               <Calendar className="w-[10px] h-[10px] mr-1" />
               {item.source_date}
             </span>
@@ -201,7 +201,7 @@ function FeedCard({
               ).map((tag) => (
                 <span
                   key={tag}
-                  className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white border border-slate-200 text-slate-500 uppercase tracking-wider"
+                  className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white border border-slate-200 text-slate-500 uppercase tracking-wider dark:border-white/10 dark:bg-slate-900 dark:text-slate-400"
                 >
                   {tag}
                 </span>
@@ -213,12 +213,12 @@ function FeedCard({
 
         <h3
           className={`text-[14px] font-bold mb-1 transition-colors line-clamp-1 leading-snug ${
-            isSelected ? "text-blue-700" : "text-slate-800 group-hover:text-blue-600"
+            isSelected ? "text-blue-700 dark:text-amber-300" : "text-slate-800 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-amber-300"
           }`}
         >
           {item.title_zh || item.title}
         </h3>
-        <p className="text-[13px] text-slate-500 line-clamp-2 leading-relaxed">
+        <p className="text-[13px] text-slate-500 line-clamp-2 leading-relaxed dark:text-slate-400">
           {item.tldr_zh || item.tldr_en}
         </p>
       </div>

@@ -19,7 +19,7 @@ const valueTone = (value: number | null, kind: "winRate" | "return") => {
     if (value <= 45) {
       return "text-rose-600";
     }
-    return "text-slate-800";
+    return "text-slate-800 dark:text-slate-200";
   }
 
   if (value >= 2) {
@@ -28,7 +28,7 @@ const valueTone = (value: number | null, kind: "winRate" | "return") => {
   if (value < 0) {
     return "text-rose-600";
   }
-  return "text-slate-800";
+  return "text-slate-800 dark:text-slate-200";
 };
 
 const conditionValue = (value: number | null, unit: string | null) => {
@@ -50,12 +50,12 @@ function MetricCell({ metric, field }: { metric: MarketRegimeMetric; field: "win
 
 function RegimeStatsCard({ data }: { data: MarketRegimeStatsResponse }) {
   return (
-    <section className="rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur sm:p-6">
+    <section className="rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur dark:border-white/10 dark:bg-slate-900/86 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-slate-500">{data.ticker} / {data.index_code}</p>
-          <h3 className="mt-2 font-display text-xl font-semibold text-slate-950">当前状态回测统计</h3>
-          <p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{data.ticker} / {data.index_code}</p>
+          <h3 className="mt-2 font-display text-xl font-semibold text-slate-950 dark:text-slate-50">当前状态回测统计</h3>
+          <p className="mt-2 flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400">
             <TerminalSquare className="size-4" />
             {data.window.toUpperCase()} · 最新收盘 {data.as_of_date ? formatCompactDate(data.as_of_date) : "--"} · {formatNumber(data.entry_price, 2)}
           </p>
@@ -64,12 +64,12 @@ function RegimeStatsCard({ data }: { data: MarketRegimeStatsResponse }) {
 
       <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {data.conditions.map((condition) => (
-          <div key={condition.key} className="rounded-2xl bg-slate-50 px-3 py-3">
-            <div className="text-xs font-medium text-slate-400">{condition.label}</div>
-            <div className="metric-number mt-2 text-lg font-semibold text-slate-900">
+          <div key={condition.key} className="rounded-2xl bg-slate-50 px-3 py-3 dark:bg-slate-950/58">
+            <div className="text-xs font-medium text-slate-400 dark:text-slate-500">{condition.label}</div>
+            <div className="metric-number mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
               {conditionValue(condition.value, condition.unit)}
             </div>
-            <div className="mt-1 text-xs font-semibold text-blue-600">{condition.bucket_label}</div>
+            <div className="mt-1 text-xs font-semibold text-blue-600 dark:text-amber-300">{condition.bucket_label}</div>
           </div>
         ))}
       </div>
@@ -77,7 +77,7 @@ function RegimeStatsCard({ data }: { data: MarketRegimeStatsResponse }) {
       <div className="mt-5 overflow-x-auto">
         <table className="w-full min-w-[560px] border-separate border-spacing-y-2 text-left">
           <thead>
-            <tr className="text-sm font-semibold text-slate-400">
+            <tr className="text-sm font-semibold text-slate-400 dark:text-slate-500">
               <th className="px-4 py-2">窗口</th>
               <th className="px-4 py-2">信号数</th>
               <th className="px-4 py-2">胜率</th>
@@ -89,7 +89,7 @@ function RegimeStatsCard({ data }: { data: MarketRegimeStatsResponse }) {
           </thead>
           <tbody>
             {data.metrics.map((metric) => (
-              <tr key={metric.window_days} className="bg-slate-50/80 text-slate-800">
+              <tr key={metric.window_days} className="bg-slate-50/80 text-slate-800 dark:bg-slate-950/58 dark:text-slate-200">
                 <td className="rounded-l-2xl px-4 py-3 font-semibold">{metric.window_days}D</td>
                 <td className="metric-number px-4 py-3 font-semibold">{metric.signal_count}</td>
                 <td className="px-4 py-3"><MetricCell metric={metric} field="win_rate" /></td>
@@ -110,7 +110,7 @@ function RegimeStatsCard({ data }: { data: MarketRegimeStatsResponse }) {
       </div>
 
       {data.warnings.length > 0 ? (
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
           {data.warnings.join(" ")}
         </div>
       ) : null}
@@ -120,7 +120,7 @@ function RegimeStatsCard({ data }: { data: MarketRegimeStatsResponse }) {
 
 function RegimeStatsErrorCard({ ticker, message }: { ticker: "SPY" | "QQQ"; message: string }) {
   return (
-    <section className="rounded-[28px] border border-rose-200 bg-rose-50/80 p-5 shadow-panel sm:p-6">
+    <section className="rounded-[28px] border border-rose-200 bg-rose-50/80 p-5 shadow-panel dark:border-rose-400/30 dark:bg-rose-950/30 sm:p-6">
       <p className="text-sm font-semibold text-rose-500">{ticker}</p>
       <h3 className="mt-2 font-display text-xl font-semibold text-rose-700">数据加载失败</h3>
       <p className="mt-3 text-sm text-rose-600">{message}</p>
@@ -137,14 +137,14 @@ export function RegimeStatsPanel() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <div className="flex rounded-full border border-slate-200 bg-white/80 p-1 shadow-sm">
+        <div className="flex rounded-full border border-slate-200 bg-white/80 p-1 shadow-sm dark:border-white/10 dark:bg-slate-900/80">
           {WINDOWS.map((item) => (
             <button
               key={item}
               type="button"
               onClick={() => setWindow(item)}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                window === item ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-900"
+                window === item ? "bg-blue-600 text-white shadow-sm dark:bg-amber-400 dark:text-slate-950" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
               }`}
             >
               {item}

@@ -20,10 +20,10 @@ function MetricBlock({
   color: string;
 }) {
   return (
-    <div className="rounded-[24px] bg-slate-50/90 p-4">
+    <div className="rounded-[24px] bg-slate-50/90 p-4 dark:bg-slate-950/58">
       <div className="flex items-end justify-between gap-3">
-        <div className="text-sm font-medium text-slate-600">{title}</div>
-        <div className="metric-number text-2xl font-semibold text-slate-950">{formatNumber(value, 2)}</div>
+        <div className="text-sm font-medium text-slate-600 dark:text-slate-400">{title}</div>
+        <div className="metric-number text-2xl font-semibold text-slate-950 dark:text-slate-50">{formatNumber(value, 2)}</div>
       </div>
       <div className="mt-3">
         <Sparkline
@@ -39,13 +39,13 @@ function MetricBlock({
 
 export function VolatilityCard({ vix, volStructure, trend }: VolatilityCardProps) {
   return (
-    <section className="flex h-full flex-col rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur sm:p-6">
+    <section className="flex h-full flex-col rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur dark:border-white/10 dark:bg-slate-900/86 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-slate-500">波动率指标</p>
-          <h3 className="mt-2 font-display text-xl font-semibold text-slate-950">Volatility</h3>
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">波动率指标</p>
+          <h3 className="mt-2 font-display text-xl font-semibold text-slate-950 dark:text-slate-50">Volatility</h3>
         </div>
-        <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+        <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-400">
           {trend.as_of_date ? formatCompactDate(trend.as_of_date) : formatCompactDate(vix.as_of_date)}
         </div>
       </div>

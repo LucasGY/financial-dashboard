@@ -20,7 +20,7 @@ export function AsyncState({
 }: AsyncStateProps) {
   if (isLoading) {
     return (
-      <div className="flex min-h-[180px] items-center justify-center rounded-[28px] border border-slate-200/70 bg-white/80 px-6 py-10 text-slate-500 shadow-panel backdrop-blur">
+      <div className="flex min-h-[180px] items-center justify-center rounded-[28px] border border-slate-200/70 bg-white/80 px-6 py-10 text-slate-500 shadow-panel backdrop-blur dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-400">
         <div className="flex items-center gap-3 text-sm font-medium">
           <LoaderCircle className="size-4 animate-spin" />
           <span>{loadingLabel}</span>
@@ -31,7 +31,7 @@ export function AsyncState({
 
   if (error) {
     return (
-      <div className="flex min-h-[180px] items-center justify-center rounded-[28px] border border-rose-200 bg-rose-50/90 px-6 py-10 text-center text-rose-700 shadow-panel">
+      <div className="flex min-h-[180px] items-center justify-center rounded-[28px] border border-rose-200 bg-rose-50/90 px-6 py-10 text-center text-rose-700 shadow-panel dark:border-rose-400/30 dark:bg-rose-950/30 dark:text-rose-200">
         <div className="max-w-sm space-y-3">
           <div className="flex items-center justify-center gap-2 text-sm font-semibold">
             <AlertCircle className="size-4" />
@@ -45,7 +45,7 @@ export function AsyncState({
 
   if (isEmpty) {
     return (
-      <div className="flex min-h-[180px] items-center justify-center rounded-[28px] border border-dashed border-slate-300 bg-white/65 px-6 py-10 text-sm text-slate-500 shadow-panel">
+      <div className="flex min-h-[180px] items-center justify-center rounded-[28px] border border-dashed border-slate-300 bg-white/65 px-6 py-10 text-sm text-slate-500 shadow-panel dark:border-white/15 dark:bg-slate-900/60 dark:text-slate-400">
         {emptyLabel}
       </div>
     );
