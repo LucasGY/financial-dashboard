@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
-type Theme = "black" | "light";
+type Theme = "dark" | "light";
 
 type ThemeContextValue = {
   theme: Theme;
@@ -13,10 +13,10 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function getInitialTheme(): Theme {
   if (typeof window === "undefined") {
-    return "black";
+    return "dark";
   }
 
-  return window.localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "black";
+  return window.localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -24,9 +24,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle("dark", theme === "black");
+    root.classList.toggle("dark", theme === "dark");
     root.dataset.theme = theme;
-    root.style.colorScheme = theme === "black" ? "dark" : "light";
+    root.style.colorScheme = theme === "dark" ? "dark" : "light";
     window.localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 

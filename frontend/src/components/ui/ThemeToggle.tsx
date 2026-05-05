@@ -6,9 +6,9 @@ export function ThemeToggle() {
 
   return (
     <div className="fixed right-4 top-4 z-[60] flex rounded-full border border-slate-200/80 bg-white/90 p-1 shadow-panel backdrop-blur dark:border-white/10 dark:bg-slate-950/82">
-      {(["black", "light"] as const).map((item) => {
+      {(["dark", "light"] as const).map((item) => {
         const isActive = theme === item;
-        const Icon = item === "black" ? Moon : Sun;
+        const Icon = item === "dark" ? Moon : Sun;
 
         return (
           <button

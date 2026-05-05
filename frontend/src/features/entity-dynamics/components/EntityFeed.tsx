@@ -77,7 +77,7 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
   };
 
   return (
-    <div className="flex flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900/86">
+    <div className="flex flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#0b1220]">
       {/* Filter area */}
       <div className="mb-6 border-b border-slate-100 pb-5 dark:border-white/10">
         <div className="flex flex-wrap gap-2 mb-3">
@@ -103,7 +103,7 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
               className={`px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
                 activeEntity === "all"
                   ? "border-slate-800 text-slate-800 bg-slate-50 dark:border-amber-400 dark:bg-amber-400/10 dark:text-amber-300"
-                  : "border-slate-200 text-slate-500 hover:border-slate-400 dark:border-white/10 dark:text-slate-400 dark:hover:border-white/30"
+                  : "border-slate-200 text-slate-500 hover:border-slate-400 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-500"
               }`}
             >
               全部
@@ -120,7 +120,7 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
                     ? "border-blue-500 text-blue-600 bg-blue-50 dark:border-amber-400 dark:bg-amber-400/10 dark:text-amber-300"
                     : !availableEntityOptions.has(entity)
                       ? "border-slate-100 text-slate-300 bg-slate-50 cursor-not-allowed dark:border-white/5 dark:bg-slate-950/30 dark:text-slate-700"
-                    : "border-slate-200 text-slate-500 hover:border-slate-400 dark:border-white/10 dark:text-slate-400 dark:hover:border-white/30"
+                    : "border-slate-200 text-slate-500 hover:border-slate-400 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-500"
                 }`}
               >
                 {entity}
@@ -132,7 +132,7 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
 
       {/* Timeline */}
       <div className="relative">
-        <div className="absolute left-[11px] top-4 bottom-0 w-[2px] bg-slate-100 dark:bg-white/10" />
+        <div className="absolute left-[11px] top-4 bottom-0 w-[2px] bg-slate-100 dark:bg-slate-800" />
 
         {isLoading && (
           <div className="pl-8 py-10 text-center text-slate-400 text-sm dark:text-slate-500">加载中…</div>
@@ -185,7 +185,7 @@ function FeedCard({
         className={`border rounded-xl p-3.5 transition-all duration-200 ${
           isSelected
             ? "bg-blue-50/60 border-blue-300 shadow-sm dark:border-amber-400/60 dark:bg-amber-400/10"
-            : "bg-white border-slate-100/60 hover:shadow-sm hover:bg-slate-50/50 group-hover:border-blue-200 dark:border-white/10 dark:bg-slate-950/40 dark:hover:bg-slate-900 dark:group-hover:border-amber-400/40"
+            : "bg-white border-slate-100/60 hover:shadow-sm hover:bg-slate-50/50 group-hover:border-blue-200 dark:border-slate-800 dark:bg-[#111827] dark:hover:bg-slate-800 dark:group-hover:border-slate-600"
         }`}
       >
         <div className="flex justify-between items-start mb-1.5">
@@ -201,7 +201,7 @@ function FeedCard({
               ).map((tag) => (
                 <span
                   key={tag}
-                  className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white border border-slate-200 text-slate-500 uppercase tracking-wider dark:border-white/10 dark:bg-slate-900 dark:text-slate-400"
+                  className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white border border-slate-200 text-slate-500 uppercase tracking-wider dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400"
                 >
                   {tag}
                 </span>
