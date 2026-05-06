@@ -1,13 +1,15 @@
+import { useLanguage } from "../../app/language";
+
 type GaugeChartProps = {
   value: number | null;
 };
 
 const SEGMENTS = [
-  { label: "极度恐惧", min: 0, max: 20, color: "#166534", text: "#ffffff" },
-  { label: "恐惧", min: 20, max: 40, color: "#22c55e", text: "#ffffff" },
-  { label: "中立", min: 40, max: 60, color: "#fbbf24", text: "#111827" },
-  { label: "贪婪", min: 60, max: 80, color: "#f97316", text: "#ffffff" },
-  { label: "极度贪婪", min: 80, max: 100, color: "#dc2626", text: "#ffffff" }
+  { labelZh: "极度恐惧", labelEn: "Extreme Fear", min: 0, max: 20, color: "#166534", text: "#ffffff" },
+  { labelZh: "恐惧", labelEn: "Fear", min: 20, max: 40, color: "#22c55e", text: "#ffffff" },
+  { labelZh: "中立", labelEn: "Neutral", min: 40, max: 60, color: "#fbbf24", text: "#111827" },
+  { labelZh: "贪婪", labelEn: "Greed", min: 60, max: 80, color: "#f97316", text: "#ffffff" },
+  { labelZh: "极度贪婪", labelEn: "Extreme Greed", min: 80, max: 100, color: "#dc2626", text: "#ffffff" }
 ];
 
 const FALLBACK_VALUE = 0;
@@ -31,6 +33,7 @@ function describeArc(x: number, y: number, radius: number, startAngle: number, e
 const valueToAngle = (value: number) => (value / 100) * 180 - 90;
 
 export function GaugeChart({ value }: GaugeChartProps) {
+  const { isZh } = useLanguage();
   const normalizedValue = Math.max(0, Math.min(100, value ?? FALLBACK_VALUE));
   const activeSegment = SEGMENTS.find((segment) => normalizedValue >= segment.min && normalizedValue <= segment.max) ?? SEGMENTS[0];
   const pointerAngle = valueToAngle(normalizedValue);
@@ -60,7 +63,7 @@ export function GaugeChart({ value }: GaugeChartProps) {
           const isActive = normalizedValue >= segment.min && normalizedValue <= segment.max;
 
           return (
-            <g key={segment.label}>
+            <g key={segment.labelEn}>
               <path d={path} fill="none" stroke="#e5e7eb" strokeWidth={strokeWidth} />
               {isActive ? (
                 <path
@@ -79,11 +82,12 @@ export function GaugeChart({ value }: GaugeChartProps) {
           const midAngle = valueToAngle((segment.min + segment.max) / 2);
           const labelPosition = polarToCartesian(cx, cy, radius, midAngle);
           const isActive = normalizedValue >= segment.min && normalizedValue <= segment.max;
-          const words = segment.label.length === 4 ? [segment.label.slice(0, 2), segment.label.slice(2)] : [segment.label];
+          const label = isZh ? segment.labelZh : segment.labelEn;
+          const words = isZh && label.length === 4 ? [label.slice(0, 2), label.slice(2)] : label.split(" ");
 
           return (
             <text
-              key={`${segment.label}-label`}
+              key={`${segment.labelEn}-label`}
               x={labelPosition.x}
               y={labelPosition.y}
               textAnchor="middle"
@@ -132,7 +136,7 @@ export function GaugeChart({ value }: GaugeChartProps) {
 
       <div className="mt-2 text-center">
         <span className="text-lg font-bold" style={{ color: activeSegment.color }}>
-          {activeSegment.label}
+          {isZh ? activeSegment.labelZh : activeSegment.labelEn}
         </span>
       </div>
     </div>

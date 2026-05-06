@@ -1,3 +1,4 @@
+import { useLanguage } from "../../app/language";
 import type { TimeSeriesPoint } from "../../features/sentiment/types";
 
 type SignalMarkerPoint = {
@@ -34,10 +35,11 @@ const buildPath = (points: ChartPoint[]) => {
 };
 
 export function SignalLineChart({ priceSeries, signalPoints }: SignalLineChartProps) {
+  const { isZh } = useLanguage();
   const filtered = priceSeries.filter((item): item is TimeSeriesPoint & { value: number } => item.value !== null);
 
   if (filtered.length < 2) {
-    return <div className="flex h-[180px] items-center justify-center text-xs text-slate-400">暂无价格曲线</div>;
+    return <div className="flex h-[180px] items-center justify-center text-xs text-slate-400">{isZh ? "暂无价格曲线" : "No price curve"}</div>;
   }
 
   const min = Math.min(...filtered.map((item) => item.value));
