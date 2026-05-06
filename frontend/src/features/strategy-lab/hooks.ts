@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useLanguage } from "../../app/language";
 import { createStrategyLabRun, getStrategyLabRunResult, getStrategyLabRunStatus } from "./api";
 import type { StrategyLabResult, StrategyLabRunRequest } from "./types";
 
@@ -14,8 +13,6 @@ type StrategyLabState = {
 const delay = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 export function useStrategyLab() {
-  const { isZh } = useLanguage();
-  const fallbackError = isZh ? "策略运行失败" : "Strategy run failed";
   const [state, setState] = useState<StrategyLabState>({
     result: null,
     runId: null,
@@ -47,7 +44,7 @@ export function useStrategyLab() {
           ...current,
           isSubmitting: false,
           status: "failed",
-          error: created.message || fallbackError
+          error: created.message || "策略运行失败"
         }));
         return;
       }
@@ -62,7 +59,7 @@ export function useStrategyLab() {
             ...current,
             isSubmitting: false,
             status,
-            error: polled.message || fallbackError
+            error: polled.message || "策略运行失败"
           }));
           return;
         }
@@ -77,7 +74,7 @@ export function useStrategyLab() {
         error: null
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : fallbackError;
+      const message = error instanceof Error ? error.message : "策略运行失败";
       setState({
         result: null,
         runId: null,

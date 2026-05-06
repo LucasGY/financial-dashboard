@@ -1,6 +1,5 @@
 import { TerminalSquare } from "lucide-react";
 import { useDeferredValue, useState } from "react";
-import { useLanguage } from "../../../app/language";
 import { AsyncState } from "../../../components/ui/AsyncState";
 import { formatCompactDate, formatNumber, formatPercent } from "../../../lib/format";
 import { useMarketRegimeStats } from "../hooks";
@@ -50,16 +49,15 @@ function MetricCell({ metric, field }: { metric: MarketRegimeMetric; field: "win
 }
 
 function RegimeStatsCard({ data }: { data: MarketRegimeStatsResponse }) {
-  const { isZh } = useLanguage();
   return (
     <section className="rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur dark:border-white/10 dark:bg-slate-900/86 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{data.ticker} / {data.index_code}</p>
-          <h3 className="mt-2 font-display text-xl font-semibold text-slate-950 dark:text-slate-50">{isZh ? "当前状态回测统计" : "Current Regime Backtest Stats"}</h3>
+          <h3 className="mt-2 font-display text-xl font-semibold text-slate-950 dark:text-slate-50">当前状态回测统计</h3>
           <p className="mt-2 flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400">
             <TerminalSquare className="size-4" />
-            {data.window.toUpperCase()} · {isZh ? "最新收盘" : "Latest close"} {data.as_of_date ? formatCompactDate(data.as_of_date) : "--"} · {formatNumber(data.entry_price, 2)}
+            {data.window.toUpperCase()} · 最新收盘 {data.as_of_date ? formatCompactDate(data.as_of_date) : "--"} · {formatNumber(data.entry_price, 2)}
           </p>
         </div>
       </div>
@@ -80,13 +78,13 @@ function RegimeStatsCard({ data }: { data: MarketRegimeStatsResponse }) {
         <table className="w-full min-w-[560px] border-separate border-spacing-y-2 text-left">
           <thead>
             <tr className="text-sm font-semibold text-slate-400 dark:text-slate-500">
-              <th className="px-4 py-2">{isZh ? "窗口" : "Window"}</th>
-              <th className="px-4 py-2">{isZh ? "信号数" : "Signals"}</th>
-              <th className="px-4 py-2">{isZh ? "胜率" : "Win Rate"}</th>
-              <th className="px-4 py-2">{isZh ? "平均回报" : "Avg Return"}</th>
-              <th className="px-4 py-2">{isZh ? "中位回报" : "Median Return"}</th>
-              <th className="px-4 py-2">{isZh ? "最大" : "Max"}</th>
-              <th className="px-4 py-2">{isZh ? "最小" : "Min"}</th>
+              <th className="px-4 py-2">窗口</th>
+              <th className="px-4 py-2">信号数</th>
+              <th className="px-4 py-2">胜率</th>
+              <th className="px-4 py-2">平均回报</th>
+              <th className="px-4 py-2">中位回报</th>
+              <th className="px-4 py-2">最大</th>
+              <th className="px-4 py-2">最小</th>
             </tr>
           </thead>
           <tbody>
@@ -121,18 +119,16 @@ function RegimeStatsCard({ data }: { data: MarketRegimeStatsResponse }) {
 }
 
 function RegimeStatsErrorCard({ ticker, message }: { ticker: "SPY" | "QQQ"; message: string }) {
-  const { isZh } = useLanguage();
   return (
     <section className="rounded-[28px] border border-rose-200 bg-rose-50/80 p-5 shadow-panel dark:border-rose-400/30 dark:bg-rose-950/30 sm:p-6">
       <p className="text-sm font-semibold text-rose-500">{ticker}</p>
-      <h3 className="mt-2 font-display text-xl font-semibold text-rose-700">{isZh ? "数据加载失败" : "Failed to load data"}</h3>
+      <h3 className="mt-2 font-display text-xl font-semibold text-rose-700">数据加载失败</h3>
       <p className="mt-3 text-sm text-rose-600">{message}</p>
     </section>
   );
 }
 
 export function RegimeStatsPanel() {
-  const { isZh } = useLanguage();
   const [window, setWindow] = useState<MarketRegimeWindow>("1y");
   const deferredWindow = useDeferredValue(window);
   const { data, error, isLoading } = useMarketRegimeStats(deferredWindow);
@@ -157,11 +153,11 @@ export function RegimeStatsPanel() {
         </div>
       </div>
 
-      <AsyncState isLoading={isLoading} error={error} isEmpty={isEmpty} emptyLabel={isZh ? "当前状态回测数据暂不可用" : "Current regime backtest data is unavailable"}>
+      <AsyncState isLoading={isLoading} error={error} isEmpty={isEmpty} emptyLabel="当前状态回测数据暂不可用">
         {data ? (
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-            {data.spy.data ? <RegimeStatsCard data={data.spy.data} /> : <RegimeStatsErrorCard ticker="SPY" message={data.spy.error || (isZh ? "数据源暂不可用" : "Data source is unavailable")} />}
-            {data.qqq.data ? <RegimeStatsCard data={data.qqq.data} /> : <RegimeStatsErrorCard ticker="QQQ" message={data.qqq.error || (isZh ? "数据源暂不可用" : "Data source is unavailable")} />}
+            {data.spy.data ? <RegimeStatsCard data={data.spy.data} /> : <RegimeStatsErrorCard ticker="SPY" message={data.spy.error || "数据源暂不可用"} />}
+            {data.qqq.data ? <RegimeStatsCard data={data.qqq.data} /> : <RegimeStatsErrorCard ticker="QQQ" message={data.qqq.error || "数据源暂不可用"} />}
           </div>
         ) : null}
       </AsyncState>

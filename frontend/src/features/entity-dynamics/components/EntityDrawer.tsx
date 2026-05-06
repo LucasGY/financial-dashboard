@@ -1,7 +1,6 @@
 import { Calendar, ExternalLink, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useLanguage } from "../../../app/language";
 import { useSourceDetail } from "../hooks";
 import type { SourceDetail } from "../types";
 
@@ -25,7 +24,6 @@ interface Props {
 }
 
 export function EntityDrawer({ slug, onClose }: Props) {
-  const { isZh } = useLanguage();
   const { data: detail, isLoading } = useSourceDetail(slug);
 
   return (
@@ -67,7 +65,7 @@ export function EntityDrawer({ slug, onClose }: Props) {
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
               {isLoading && !detail && (
-                <div className="text-slate-400 text-sm text-center py-16 dark:text-slate-500">{isZh ? "加载中..." : "Loading..."}</div>
+                <div className="text-slate-400 text-sm text-center py-16 dark:text-slate-500">加载中…</div>
               )}
 
               {detail && (
@@ -90,18 +88,18 @@ export function EntityDrawer({ slug, onClose }: Props) {
                           rel="noopener noreferrer"
                           className="flex items-center text-blue-500 hover:underline dark:text-amber-300"
                         >
-                          {isZh ? "查看原始来源" : "View source"} <ExternalLink className="w-3 h-3 ml-1" />
+                          查看原始来源 <ExternalLink className="w-3 h-3 ml-1" />
                         </a>
                       </>
                     )}
                   </div>
 
                   <h1 className="text-xl font-bold text-slate-900 mb-6 leading-snug dark:text-slate-50">
-                    {isZh ? detail.title_zh || detail.title : detail.title || detail.title_zh}
+                    {detail.title_zh || detail.title}
                   </h1>
 
                   <div className="mb-6 p-4 bg-blue-50/50 rounded-lg border-l-2 border-blue-500 text-slate-700 text-[13px] leading-relaxed dark:border-amber-400 dark:bg-amber-400/10 dark:text-slate-200">
-                    {isZh ? detail.tldr_zh || detail.tldr_en : detail.tldr_en || detail.tldr_zh}
+                    {detail.tldr_zh || detail.tldr_en}
                   </div>
 
                   <div className="prose prose-slate prose-sm max-w-none text-[14px] leading-relaxed dark:prose-invert prose-strong:text-amber-500 dark:prose-strong:text-amber-300">

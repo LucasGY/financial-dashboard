@@ -1,14 +1,13 @@
 import { useMemo, useState } from "react";
 import { Activity, BookOpen, Calendar, FileText, Mic } from "lucide-react";
-import { useLanguage } from "../../../app/language";
 import { useEntityFeed } from "../hooks";
 import type { ContentType, FeedItem, FrontendCategory } from "../types";
 
-const CATEGORIES: { id: "all" | FrontendCategory; label: string; labelEn: string }[] = [
-  { id: "all", label: "全部动态", labelEn: "All Updates" },
-  { id: "mag7", label: "核心巨头", labelEn: "Mega Caps" },
-  { id: "ai", label: "AI 独角兽", labelEn: "AI Unicorns" },
-  { id: "content", label: "深度内容", labelEn: "Deep Content" },
+const CATEGORIES: { id: "all" | FrontendCategory; label: string }[] = [
+  { id: "all", label: "全部动态" },
+  { id: "mag7", label: "核心巨头 (Mega Caps)" },
+  { id: "ai", label: "AI 独角兽" },
+  { id: "content", label: "深度内容" },
 ];
 
 const SECONDARY_TAGS: Record<FrontendCategory, string[]> = {
@@ -40,7 +39,6 @@ interface Props {
 }
 
 export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
-  const { isZh } = useLanguage();
   const { data, isLoading, error } = useEntityFeed();
   const [activeCategory, setActiveCategory] = useState<"all" | FrontendCategory>("all");
   const [activeEntity, setActiveEntity] = useState<string>("all");
@@ -93,7 +91,7 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-950/70 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
               }`}
             >
-              {isZh ? cat.label : cat.labelEn}
+              {cat.label}
             </button>
           ))}
         </div>
@@ -108,7 +106,7 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
                   : "border-slate-200 text-slate-500 hover:border-slate-400 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-500"
               }`}
             >
-              {isZh ? "全部" : "All"}
+              全部
             </button>
             {entityOptions.map((entity) => (
               <button
@@ -137,15 +135,15 @@ export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
         <div className="absolute left-[11px] top-4 bottom-0 w-[2px] bg-slate-100 dark:bg-slate-800" />
 
         {isLoading && (
-          <div className="pl-8 py-10 text-center text-slate-400 text-sm dark:text-slate-500">{isZh ? "加载中..." : "Loading..."}</div>
+          <div className="pl-8 py-10 text-center text-slate-400 text-sm dark:text-slate-500">加载中…</div>
         )}
 
         {error && (
-          <div className="pl-8 py-10 text-center text-red-400 text-sm dark:text-red-300">{isZh ? "加载失败，请检查后端服务" : "Failed to load. Check the backend service."}</div>
+          <div className="pl-8 py-10 text-center text-red-400 text-sm dark:text-red-300">加载失败，请检查后端服务</div>
         )}
 
         {!isLoading && !error && filteredItems.length === 0 && (
-          <div className="pl-8 py-10 text-center text-slate-400 text-sm dark:text-slate-500">{isZh ? "没有找到相关的动态内容" : "No matching updates found"}</div>
+          <div className="pl-8 py-10 text-center text-slate-400 text-sm dark:text-slate-500">没有找到相关的动态内容</div>
         )}
 
         <div className="space-y-3 pt-1 pb-4">
@@ -172,7 +170,6 @@ function FeedCard({
   isSelected: boolean;
   onClick: () => void;
 }) {
-  const { isZh } = useLanguage();
   const { Icon, className: iconClassName } = getContentIcon(item.content_type);
   const today = isToday(item.source_date);
 
@@ -219,10 +216,10 @@ function FeedCard({
             isSelected ? "text-blue-700 dark:text-amber-300" : "text-slate-800 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-amber-300"
           }`}
         >
-          {isZh ? item.title_zh || item.title : item.title || item.title_zh}
+          {item.title_zh || item.title}
         </h3>
         <p className="text-[13px] text-slate-500 line-clamp-2 leading-relaxed dark:text-slate-400">
-          {isZh ? item.tldr_zh || item.tldr_en : item.tldr_en || item.tldr_zh}
+          {item.tldr_zh || item.tldr_en}
         </p>
       </div>
     </div>

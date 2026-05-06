@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useLanguage } from "../../../app/language";
 import { Sparkline } from "../../../components/charts/Sparkline";
 import { formatCompactDate, formatPercent } from "../../../lib/format";
 import type { BreadthSnapshot, BreadthTrendResponse, TimeSeriesPoint } from "../types";
@@ -44,7 +43,6 @@ const seriesByPeriod = (trend: BreadthTrendResponse | undefined, period: Breadth
 };
 
 export function BreadthCard({ snapshot, trend }: BreadthCardProps) {
-  const { isZh } = useLanguage();
   const [selectedPeriod, setSelectedPeriod] = useState<BreadthPeriod>("50D");
   const metrics = [
     { label: "20D", value: snapshot.above_20d_pct },
@@ -57,7 +55,7 @@ export function BreadthCard({ snapshot, trend }: BreadthCardProps) {
     <section className="flex h-full flex-col rounded-[28px] border border-slate-200/70 bg-white/88 p-5 shadow-panel backdrop-blur dark:border-white/10 dark:bg-slate-900/86 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{isZh ? "市场宽度" : "Market Breadth"}</p>
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Market Breadth</p>
           <h3 className="mt-2 font-display text-xl font-semibold text-slate-950 dark:text-slate-50">{snapshot.display_name}</h3>
         </div>
         <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-400">
@@ -77,10 +75,8 @@ export function BreadthCard({ snapshot, trend }: BreadthCardProps) {
       <div className="mt-auto border-t border-slate-100 pt-4 dark:border-white/10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">{isZh ? "30日走势" : "30D Timeline"}</div>
-            <div className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-400">
-              {isZh ? `${selectedPeriod} 高于移动均线比例` : `${selectedPeriod} above moving average`}
-            </div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">30D Timeline</div>
+            <div className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-400">{selectedPeriod} above moving average</div>
           </div>
           <div className="flex rounded-full border border-slate-200 bg-slate-50 p-1 dark:border-white/10 dark:bg-slate-950/70">
             {PERIODS.map((period) => (

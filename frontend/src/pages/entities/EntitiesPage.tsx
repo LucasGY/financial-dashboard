@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Radio } from "lucide-react";
-import { useLanguage } from "../../app/language";
 import { EntityDrawer } from "../../features/entity-dynamics/components/EntityDrawer";
 import { EntityFeed } from "../../features/entity-dynamics/components/EntityFeed";
 
 export function EntitiesPage() {
-  const { isZh } = useLanguage();
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
   return (
@@ -21,17 +19,17 @@ export function EntitiesPage() {
                 className="inline-flex items-center gap-1.5 text-xs text-blue-200 hover:text-white transition-colors mb-3"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                {isZh ? "返回市场全景" : "Back to Market Overview"}
+                返回市场全景
               </Link>
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">
                 <Radio className="size-3.5" />
-                {isZh ? "实体动态" : "Entity Dynamics"}
+                Entity Dynamics
               </div>
               <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-                {isZh ? "深度追踪与实体动态" : "Deep Tracking and Entity Dynamics"}
+                深度追踪与实体动态
               </h1>
               <p className="mt-3 text-sm leading-6 text-blue-100">
-                {isZh ? "实时聚合 Second Brain wiki 内容，按实体和类目过滤。" : "Live aggregation of Second Brain wiki content, filterable by entity and category."}
+                实时聚合 Second Brain wiki 内容，按实体和类目过滤。
               </p>
             </div>
           </div>

@@ -1,43 +1,21 @@
-type FormatLanguage = "zh" | "en";
+const DATE_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
+  month: "numeric",
+  day: "numeric"
+});
 
-const getLocale = (language?: FormatLanguage) => {
-  if (language) {
-    return language === "en" ? "en-US" : "zh-CN";
-  }
+const MONTH_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
+  year: "numeric",
+  month: "2-digit"
+});
 
-  if (typeof document === "undefined") {
-    return "zh-CN";
-  }
-  return document.documentElement.lang === "en" ? "en-US" : "zh-CN";
+export const formatCompactDate = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : DATE_FORMATTER.format(date);
 };
 
-export const formatCompactDate = (value: string, language?: FormatLanguage) => {
+export const formatMonthDate = (value: string) => {
   const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat(getLocale(language), {
-        month: "numeric",
-        day: "numeric"
-      }).format(date);
-};
-
-export const formatMonthDate = (value: string, language?: FormatLanguage) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  if (getLocale(language) === "en-US") {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      year: "numeric"
-    }).format(date);
-  }
-
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "2-digit"
-  }).format(date).replace("/", "-");
+  return Number.isNaN(date.getTime()) ? value : MONTH_FORMATTER.format(date).replace("/", "-");
 };
 
 export const formatNumber = (value: number | null | undefined, digits = 1) => {
