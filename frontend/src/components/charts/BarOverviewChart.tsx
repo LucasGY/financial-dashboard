@@ -1,3 +1,5 @@
+import { useLanguage } from "../../app/language";
+
 type BarOverviewChartProps = {
   bars: Array<{
     label: string;
@@ -14,11 +16,12 @@ export function BarOverviewChart({
   positiveColor = "#2563eb",
   negativeColor = "#ef4444"
 }: BarOverviewChartProps) {
+  const { isZh } = useLanguage();
   const availableValues = bars.map((item) => item.value).filter((value): value is number => value !== null);
   const scale = Math.max(...availableValues.map((value) => Math.abs(value)), 1);
 
   if (availableValues.length === 0) {
-    return <div className="flex h-[150px] items-center justify-center text-xs text-slate-400">暂无统计结果</div>;
+    return <div className="flex h-[150px] items-center justify-center text-xs text-slate-400">{isZh ? "暂无统计结果" : "No stats available"}</div>;
   }
 
   return (

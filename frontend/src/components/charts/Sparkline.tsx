@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from "react";
+import { useLanguage } from "../../app/language";
 
 type SparklineProps = {
   data: Array<number | null>;
@@ -27,6 +28,7 @@ const getPathD = (points: Point[]) => {
 };
 
 export function Sparkline({ data, labels, color = "#2563eb", height = 72 }: SparklineProps) {
+  const { isZh } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const gradientId = useId().replace(/:/g, "");
@@ -35,7 +37,7 @@ export function Sparkline({ data, labels, color = "#2563eb", height = 72 }: Spar
     .filter((point): point is { value: number; index: number } => point !== null);
 
   if (filtered.length < 2) {
-    return <div className="flex h-[72px] items-center justify-center text-xs text-slate-400">暂无趋势数据</div>;
+    return <div className="flex h-[72px] items-center justify-center text-xs text-slate-400">{isZh ? "暂无趋势数据" : "No trend data"}</div>;
   }
 
   const min = Math.min(...filtered.map((item) => item.value));

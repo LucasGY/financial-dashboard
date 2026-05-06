@@ -21,6 +21,7 @@ from app.core.config import get_settings
 DEFAULT_TICKERS = [
     "SPY",
     "QQQ",
+    "BRK-B",
     "AAPL",
     "MSFT",
     "AMZN",
