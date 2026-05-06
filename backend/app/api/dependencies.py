@@ -44,6 +44,7 @@ def get_sentiment_service(database: Database = Depends(get_database)) -> Sentime
 def get_valuation_service(database: Database = Depends(get_database)) -> ValuationService:
     return ValuationService(
         index_valuation_repository=IndexValuationRepository(database),
+        price_repository=PriceRepository(database),
     )
 
 
