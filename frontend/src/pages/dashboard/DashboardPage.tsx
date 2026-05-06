@@ -9,6 +9,7 @@ import { StrategyLabPanel } from "../../features/strategy-lab/components/Strateg
 import { useSentimentData } from "../../features/sentiment/hooks";
 import { RegimeStatsPanel } from "../../features/market-regime/components/RegimeStatsPanel";
 import { ValuationCard } from "../../features/valuation/components/ValuationCard";
+import { PriceAttributionCard } from "../../features/valuation/components/PriceAttributionCard";
 
 export function DashboardPage() {
   const { data, error, isLoading } = useSentimentData();
@@ -98,6 +99,7 @@ export function DashboardPage() {
             <ValuationCard index="SPX" title="S&P 500" />
             <ValuationCard index="NDX" title="NASDAQ-100" />
           </div>
+          <PriceAttributionCard />
         </section>
 
         <section className="space-y-5">

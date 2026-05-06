@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends
 
 from app.api.dependencies import get_valuation_service
-from app.schemas.valuation import ValuationOverviewResponse, ValuationTimelineResponse
+from app.schemas.valuation import PriceAttributionResponse, ValuationOverviewResponse, ValuationTimelineResponse
 from app.services.valuation_service import ValuationService
 
 router = APIRouter()
@@ -21,3 +21,12 @@ def get_timeline(
 @router.get("/overview", response_model=ValuationOverviewResponse)
 def get_overview(service: ValuationService = Depends(get_valuation_service)) -> ValuationOverviewResponse:
     return service.get_overview()
+
+
+@router.get("/price-attribution", response_model=PriceAttributionResponse)
+def get_price_attribution(
+    index: Literal["SPX", "NDX"],
+    tag: Literal["week", "month"],
+    service: ValuationService = Depends(get_valuation_service),
+) -> PriceAttributionResponse:
+    return service.get_price_attribution(index, tag)
