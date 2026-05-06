@@ -102,14 +102,6 @@ class FakeIndexValuationRepository:
                 ValuationRow(trade_date=date(2026, 1, 31), index_name="SPX", pe_ntm=Decimal("17.1234")),
                 ValuationRow(trade_date=date(2026, 2, 28), index_name="SP500", pe_ntm=None),
                 ValuationRow(trade_date=date(2026, 3, 31), index_name="S&P 500", pe_ntm=Decimal("18.4000")),
-                ValuationRow(trade_date=date(2026, 4, 1), index_name="SPX", pe_ntm=Decimal("20.0000")),
-                ValuationRow(trade_date=date(2026, 4, 2), index_name="SPX", pe_ntm=Decimal("21.0000")),
-                ValuationRow(trade_date=date(2026, 4, 3), index_name="SPX", pe_ntm=Decimal("20.5000")),
-                ValuationRow(trade_date=date(2026, 4, 4), index_name="SPX", pe_ntm=Decimal("20.8000")),
-                ValuationRow(trade_date=date(2026, 4, 5), index_name="SPX", pe_ntm=Decimal("21.0000")),
-                ValuationRow(trade_date=date(2026, 4, 6), index_name="SPX", pe_ntm=Decimal("21.2000")),
-                ValuationRow(trade_date=date(2026, 4, 7), index_name="SPX", pe_ntm=Decimal("22.0000")),
-                ValuationRow(trade_date=date(2026, 4, 8), index_name="SPX", pe_ntm=Decimal("22.4000")),
             ]
         if "NDX" in aliases:
             return []
@@ -201,7 +193,6 @@ def client() -> Generator[TestClient, None, None]:
     )
     app.dependency_overrides[get_valuation_service] = lambda: ValuationService(
         index_valuation_repository=FakeIndexValuationRepository(),
-        price_repository=FakePriceRepository(),
     )
     app.dependency_overrides[get_market_regime_service] = lambda: MarketRegimeService(
         price_repository=FakePriceRepository(),

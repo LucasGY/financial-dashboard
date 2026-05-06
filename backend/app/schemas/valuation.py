@@ -29,27 +29,3 @@ class ValuationOverviewItem(APIModel):
 class ValuationOverviewResponse(APIModel):
     spx: Optional[ValuationOverviewItem]
     ndx: Optional[ValuationOverviewItem]
-
-
-class PriceAttributionPoint(APIModel):
-    label: str
-    start_date: date
-    end_date: date
-    price_start: Optional[float]
-    price_end: Optional[float]
-    eps_start: Optional[float]
-    eps_end: Optional[float]
-    pe_start: Optional[float]
-    pe_end: Optional[float]
-    total_return: Optional[float]
-    eps_contribution: Optional[float]
-    valuation_contribution: Optional[float]
-
-
-class PriceAttributionResponse(APIModel):
-    index_code: str
-    display_name: str
-    ticker: str
-    tag: str
-    as_of_date: Optional[date]
-    series: list[PriceAttributionPoint]
