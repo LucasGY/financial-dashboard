@@ -1,7 +1,7 @@
-import { Calendar, ExternalLink, X } from "lucide-react";
+import { ArrowLeft, Calendar, ExternalLink, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useLanguage } from "../../../app/language";
+import { labelForEvent, type Language } from "../labels";
 import { useSourceDetail } from "../hooks";
 import type { SourceDetail } from "../types";
 
@@ -11,103 +11,141 @@ function preprocessMarkdown(content: string): string {
     .replace(/\[\[([^\]]+)\]\]/g, "$1");
 }
 
-function getDisplayTags(detail: SourceDetail | null | undefined): string[] {
-  if (!detail) return [];
-  if (detail.frontend_category === "content" && detail.source_platform) {
-    return [detail.source_platform];
+function getTitle(detail: SourceDetail, language: Language) {
+  return language === "zh" ? detail.title_zh || detail.title : detail.title || detail.title_zh;
+}
+
+function getSummary(detail: SourceDetail, language: Language) {
+  const rawCandidate = language === "zh" ? detail.raw_excerpt_zh : detail.raw_excerpt;
+  if (detail.display_mode === "raw" && rawCandidate) {
+    return rawCandidate;
   }
-  return detail.entity_tags;
+  return language === "zh" ? detail.tldr_zh || detail.summary || detail.tldr_en : detail.summary || detail.tldr_en || detail.tldr_zh;
 }
 
 interface Props {
   slug: string | null;
+  language: Language;
   onClose: () => void;
 }
 
-export function EntityDrawer({ slug, onClose }: Props) {
-  const { isZh } = useLanguage();
+export function EntityDrawer({ slug, language, onClose }: Props) {
   const { data: detail, isLoading } = useSourceDetail(slug);
 
   return (
     <>
-      {slug && (
-        <div
-          className="fixed inset-0 bg-slate-900/10 backdrop-blur-sm z-40 dark:bg-black/45"
-          onClick={onClose}
-        />
-      )}
+      {slug && <div className="fixed inset-0 z-40 bg-slate-900/10 backdrop-blur-sm dark:bg-black/45 lg:left-64" onClick={onClose} />}
 
       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-[520px] bg-white shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out dark:bg-slate-950 dark:text-slate-100 dark:shadow-black/50 ${
+        className={`fixed right-0 top-0 z-50 flex h-full w-full transform flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-slate-950 dark:text-slate-100 dark:shadow-black/50 lg:left-64 lg:w-auto ${
           slug ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {slug && (
           <>
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0 dark:border-white/10">
-              <div className="flex gap-2 flex-wrap">
-                {getDisplayTags(detail).map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-1 rounded text-[11px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300"
-                  >
-                    {tag}
-                  </span>
-                ))}
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-6 py-4 dark:border-white/10">
+              <div className="min-w-0 space-y-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <ArrowLeft className="size-4" />
+                  {language === "zh" ? "返回列表" : "Back to feed"}
+                </button>
+                <div className="flex flex-wrap gap-1.5">
+                  {detail?.entity_labels.map((tag) => (
+                    <span key={tag} className="rounded bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                      {tag}
+                    </span>
+                  ))}
+                  {detail?.event_tags.map((tag) => (
+                    <span key={tag} className="rounded border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                      {labelForEvent(tag, language)}
+                    </span>
+                  ))}
+                </div>
               </div>
               <button
+                type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 transition-colors shrink-0 dark:hover:bg-white/10 dark:text-slate-500 dark:hover:text-white"
+                aria-label={language === "zh" ? "关闭详情" : "Close detail"}
+                className="shrink-0 rounded-md border border-slate-200 p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
               >
-                <X className="w-5 h-5" />
+                <X className="size-5" />
               </button>
             </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-              {isLoading && !detail && (
-                <div className="text-slate-400 text-sm text-center py-16 dark:text-slate-500">{isZh ? "加载中..." : "Loading..."}</div>
-              )}
+            <div className="custom-scrollbar flex-1 overflow-y-auto p-7">
+              {isLoading && !detail && <div className="py-16 text-center text-sm text-slate-400 dark:text-slate-500">{language === "zh" ? "加载中..." : "Loading..."}</div>}
 
               {detail && (
                 <>
-                  <div className="flex items-center text-xs text-slate-400 mb-4 font-mono dark:text-slate-500">
-                    <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                    {detail.source_date}
-                    {detail.source_platform && (
-                      <>
-                        <span className="mx-3 text-slate-200 dark:text-slate-700">|</span>
-                        <span>{detail.source_platform}</span>
-                      </>
-                    )}
+                  <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 dark:text-slate-500">
+                    <span className="inline-flex items-center gap-1 font-mono">
+                      <Calendar className="size-3.5" />
+                      {detail.source_date}
+                    </span>
+                    {detail.source_platform && <span>{detail.source_platform}</span>}
+                    {detail.source_type && <span>{detail.source_type}</span>}
+                    <span>{detail.source_count} {language === "zh" ? "来源" : "sources"}</span>
                     {detail.source_url && (
-                      <>
-                        <span className="mx-3 text-slate-200 dark:text-slate-700">|</span>
-                        <a
-                          href={detail.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center text-blue-500 hover:underline dark:text-amber-300"
-                        >
-                          {isZh ? "查看原始来源" : "View source"} <ExternalLink className="w-3 h-3 ml-1" />
-                        </a>
-                      </>
+                      <a href={detail.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-500 hover:underline dark:text-amber-300">
+                        {language === "zh" ? "原始来源" : "Original source"}
+                        <ExternalLink className="size-3" />
+                      </a>
                     )}
                   </div>
 
-                  <h1 className="text-xl font-bold text-slate-900 mb-6 leading-snug dark:text-slate-50">
-                    {isZh ? detail.title_zh || detail.title : detail.title || detail.title_zh}
-                  </h1>
+                  <h1 className="mb-5 text-xl font-bold leading-snug text-slate-950 dark:text-slate-50">{getTitle(detail, language)}</h1>
 
-                  <div className="mb-6 p-4 bg-blue-50/50 rounded-lg border-l-2 border-blue-500 text-slate-700 text-[13px] leading-relaxed dark:border-amber-400 dark:bg-amber-400/10 dark:text-slate-200">
-                    {isZh ? detail.tldr_zh || detail.tldr_en : detail.tldr_en || detail.tldr_zh}
-                  </div>
+                  {getSummary(detail, language) && (
+                    <div className="mb-6 border-l-2 border-slate-900 bg-slate-50 px-4 py-3 text-[13px] leading-6 text-slate-700 dark:border-amber-400 dark:bg-amber-400/10 dark:text-slate-200">
+                      {getSummary(detail, language)}
+                    </div>
+                  )}
 
-                  <div className="prose prose-slate prose-sm max-w-none text-[14px] leading-relaxed dark:prose-invert prose-strong:text-amber-500 dark:prose-strong:text-amber-300">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {preprocessMarkdown(detail.content)}
-                    </ReactMarkdown>
+                  {detail.sources.length > 0 && (
+                    <section className="mb-7">
+                      <h2 className="mb-3 text-sm font-bold text-slate-900 dark:text-white">{language === "zh" ? "全部来源" : "All sources"}</h2>
+                      <div className="space-y-2">
+                        {detail.sources.map((source) => (
+                          <div key={source.id} className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
+                              <span>{source.source_platform}</span>
+                              <span>{source.source_type}</span>
+                              {source.author_name && (
+                                <span className="inline-flex items-center gap-1.5">
+                                  {source.author_avatar_url && (
+                                    <img
+                                      src={source.author_avatar_url}
+                                      alt=""
+                                      className="size-4 rounded-full bg-slate-200 object-cover dark:bg-slate-700"
+                                      loading="lazy"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  )}
+                                  {source.author_name}
+                                </span>
+                              )}
+                              <span className="font-mono">{source.source_date}</span>
+                              {source.source_url && (
+                                <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-500 hover:underline dark:text-amber-300">
+                                  {language === "zh" ? "打开" : "Open"}
+                                  <ExternalLink className="size-3" />
+                                </a>
+                              )}
+                            </div>
+                            <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{source.title}</div>
+                            {source.summary && <p className="mt-1 text-[13px] leading-6 text-slate-600 dark:text-slate-400">{source.summary}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  <div className="prose prose-slate max-w-none text-[14px] leading-relaxed dark:prose-invert prose-strong:text-amber-500 dark:prose-strong:text-amber-300">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{preprocessMarkdown(detail.content)}</ReactMarkdown>
                   </div>
                 </>
               )}

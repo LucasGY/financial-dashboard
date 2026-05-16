@@ -6,112 +6,183 @@ from pathlib import Path
 from typing import Optional
 
 import frontmatter
-
-from app.schemas.entity_dynamics import FeedItem, FeedResponse, SourceDetail
+from app.repositories.intelligence_feed_repository import IntelligenceFeedRepository
+from app.repositories.models import IntelligenceEventRow, IntelligenceSourceRow
+from app.schemas.entity_dynamics import FeedResponse, IntelligenceItem, IntelligenceSource, SourceDetail
+from app.services.intelligence_taxonomy import entity_labels_for_channel, normalize_event_tags_for_domain
 
 
 class EntityDynamicsService:
-    _MAG7_TAGS = {"AMZN", "MSFT", "NVDA", "AAPL", "META", "GOOGL", "TSLA", "BRK", "TSMC"}
-    _AI_TAGS = {"OpenAI", "Anthropic"}
-    _CONTENT_PLATFORMS = {"YouTube", "X", "WeChat", "Web"}
-    _FRONTEND_CATEGORIES = {"mag7", "ai", "content"}
+    _DEEP_DIVE_FILTERS = {"all", "interview", "manual_saved", "close_reading"}
 
-    def __init__(self, second_brain_path: str) -> None:
+    def __init__(
+        self,
+        second_brain_path: str,
+        intelligence_feed_repository: IntelligenceFeedRepository,
+    ) -> None:
         self._sources_dir = Path(second_brain_path) / "wiki" / "sources"
+        self._intelligence_feed_repository = intelligence_feed_repository
 
-    def get_feed(self) -> FeedResponse:
-        return FeedResponse(items=self._load_all())
+    def get_feed(
+        self,
+        channel: str = "ai",
+        filter_key: str = "all",
+        search: Optional[str] = None,
+        min_score: Optional[int] = None,
+        entity: Optional[str] = None,
+    ) -> FeedResponse:
+        if channel in {"ai", "finance"}:
+            rows = self._intelligence_feed_repository.fetch_events(
+                domain=channel,
+                event_tag=None if filter_key == "all" else filter_key,
+                search=search,
+                min_score=min_score,
+                entity_id=entity if entity and entity != "all" else None,
+            )
+            return FeedResponse(items=[self._map_event_row(row, channel) for row in rows])
+        if channel == "deep_dive":
+            return FeedResponse(items=self._load_deep_dive(filter_key=filter_key, search=search))
+        if channel == "daily":
+            return FeedResponse(items=[])
+        return FeedResponse(items=[])
 
     def get_detail(self, slug: str) -> Optional[SourceDetail]:
+        if slug.startswith("event:"):
+            return self._get_event_detail(slug)
+        if slug.startswith("deep:"):
+            return self._get_deep_dive_detail(slug.removeprefix("deep:"))
+        return None
+
+    def _get_event_detail(self, slug: str) -> Optional[SourceDetail]:
+        try:
+            event_id = int(slug.removeprefix("event:"))
+        except ValueError:
+            return None
+        event = self._intelligence_feed_repository.fetch_event(event_id)
+        if event is None:
+            return None
+        sources = self._intelligence_feed_repository.fetch_sources_for_event(event_id)
+        item = self._map_event_row(event, event.domain)
+        return SourceDetail(
+            **item.model_dump(),
+            content="\n\n".join(source.raw_content or source.summary or source.title for source in sources),
+            sources=[self._map_source_row(source) for source in sources],
+        )
+
+    def _load_deep_dive(self, filter_key: str, search: Optional[str]) -> list[IntelligenceItem]:
+        if not self._sources_dir.exists():
+            return []
+        items: list[IntelligenceItem] = []
+        for path in sorted(self._sources_dir.glob("*.md"), reverse=True):
+            item = self._parse_deep_dive_item(path)
+            if item is None:
+                continue
+            if filter_key in self._DEEP_DIVE_FILTERS and filter_key != "all" and filter_key not in item.event_tags:
+                continue
+            if search and search.lower() not in f"{item.title} {item.title_zh} {item.summary} {item.tldr_zh}".lower():
+                continue
+            items.append(item)
+        return items
+
+    def _get_deep_dive_detail(self, slug: str) -> Optional[SourceDetail]:
         target = self._sources_dir / f"{slug}.md"
         if not target.exists():
             return None
-        return self._parse_detail(target)
+        item = self._parse_deep_dive_item(target)
+        if item is None:
+            return None
+        post = frontmatter.load(target)
+        return SourceDetail(**item.model_dump(), content=post.content, sources=[])
 
-    def _load_all(self) -> list[FeedItem]:
-        if not self._sources_dir.exists():
-            return []
-        items: list[FeedItem] = []
-        for path in sorted(self._sources_dir.glob("*.md"), reverse=True):
-            item = self._parse_item(path)
-            if item is not None:
-                items.append(item)
-        return items
-
-    def _parse_item(self, path: Path) -> Optional[FeedItem]:
+    def _parse_deep_dive_item(self, path: Path) -> Optional[IntelligenceItem]:
         try:
             post = frontmatter.load(path)
             meta = post.metadata
             frontend_category = str(meta.get("frontend_category") or "").strip()
-            entity_tags = self._normalize_tags(meta.get("entity_tags"))
-            source_path = str(meta.get("source_path") or "")
-            source_platform = str(meta.get("source_platform") or "").strip()
-            if not self._is_frontend_eligible(frontend_category, entity_tags, source_path, source_platform):
+            if frontend_category != "deep_dive":
                 return None
-            entity_tags = self._filter_entity_tags(frontend_category, entity_tags)
-            return FeedItem(
-                slug=path.stem,
-                source_date=self._normalize_date(meta.get("source_date") or meta.get("date_ingested")),
-                content_type=str(meta.get("content_type", "article")),
-                frontend_category=frontend_category,
-                entity_tags=entity_tags,
-                title=self._extract_title(post.content),
+            entity_ids = self._normalize_tags(meta.get("entity_ids") or meta.get("entity_tags"))
+            event_tags = self._normalize_tags(meta.get("event_tags")) or ["manual_saved"]
+            source_date = self._normalize_date(meta.get("source_date") or meta.get("date_ingested"))
+            title = self._extract_title(post.content)
+            return IntelligenceItem(
+                id=f"deep:{path.stem}",
+                slug=f"deep:{path.stem}",
+                channel="deep_dive",
+                domain="deep_dive",
+                source_kind="manual",
+                source_platform=str(meta.get("source_platform") or "Manual"),
+                source_type=str(meta.get("source_type") or "Manual"),
+                source_name=str(meta.get("source_name") or "Obsidian"),
+                author_name=meta.get("author_name"),
+                source_date=source_date,
+                title=title,
                 title_zh=str(meta.get("title_zh") or ""),
+                summary=str(meta.get("summary") or meta.get("tldr_zh") or meta.get("tldr_en") or ""),
                 tldr_zh=str(meta.get("tldr_zh") or ""),
                 tldr_en=str(meta.get("tldr_en") or ""),
-                source_platform=source_platform or None,
-                source_url=meta.get("source_url") or None,
+                raw_excerpt=str(meta.get("raw_excerpt") or ""),
+                raw_excerpt_zh=str(meta.get("raw_excerpt_zh") or ""),
+                display_mode="summary",
+                entity_ids=entity_ids,
+                entity_labels=entity_labels_for_channel(entity_ids, "deep_dive"),
+                event_tags=event_tags,
+                topic_tags=self._normalize_tags(meta.get("topic_tags")),
+                importance_score=meta.get("importance_score"),
+                source_count=1,
+                source_url=meta.get("source_url"),
+                status=str(meta.get("status") or "saved"),
             )
         except Exception:
             return None
 
-    def _parse_detail(self, path: Path) -> Optional[SourceDetail]:
-        try:
-            post = frontmatter.load(path)
-            meta = post.metadata
-            frontend_category = str(meta.get("frontend_category") or "").strip()
-            entity_tags = self._normalize_tags(meta.get("entity_tags"))
-            source_path = str(meta.get("source_path") or "")
-            source_platform = str(meta.get("source_platform") or "").strip()
-            if not self._is_frontend_eligible(frontend_category, entity_tags, source_path, source_platform):
-                return None
-            entity_tags = self._filter_entity_tags(frontend_category, entity_tags)
-            return SourceDetail(
-                slug=path.stem,
-                source_date=self._normalize_date(meta.get("source_date") or meta.get("date_ingested")),
-                content_type=str(meta.get("content_type", "article")),
-                frontend_category=frontend_category,
-                entity_tags=entity_tags,
-                title=self._extract_title(post.content),
-                title_zh=str(meta.get("title_zh") or ""),
-                tldr_zh=str(meta.get("tldr_zh") or ""),
-                tldr_en=str(meta.get("tldr_en") or ""),
-                source_platform=source_platform or None,
-                source_url=meta.get("source_url") or None,
-                content=post.content,
-            )
-        except Exception:
-            return None
+    def _map_event_row(self, row: IntelligenceEventRow, channel: str) -> IntelligenceItem:
+        primary = row.primary_source
+        raw_excerpt = self._short_raw_excerpt(primary.raw_content if primary else None)
+        return IntelligenceItem(
+            id=f"event:{row.id}",
+            slug=f"event:{row.id}",
+            channel=channel,  # type: ignore[arg-type]
+            domain=row.domain,
+            source_kind="feed",
+            source_platform=primary.source_platform if primary else None,
+            source_type=primary.source_type if primary else None,
+            source_name=primary.source_name if primary else None,
+            author_name=primary.author_name if primary else None,
+            author_avatar_url=primary.author_avatar_url if primary else None,
+            source_date=self._normalize_date(row.last_seen_at),
+            title=row.title,
+            title_zh=row.title_zh or "",
+            summary=row.summary,
+            tldr_zh=row.tldr_zh or "",
+            tldr_en=row.summary,
+            raw_excerpt=raw_excerpt,
+            raw_excerpt_zh=raw_excerpt if self._contains_cjk(raw_excerpt) else "",
+            display_mode="raw" if raw_excerpt else "summary",
+            entity_ids=row.entity_ids,
+            entity_labels=entity_labels_for_channel(row.entity_ids, channel),
+            event_tags=normalize_event_tags_for_domain(row.domain, row.event_tags),
+            topic_tags=row.topic_tags,
+            importance_score=row.importance_score,
+            source_count=row.source_count,
+            source_url=primary.source_url if primary else None,
+            status=row.status,
+        )
 
-    @classmethod
-    def _is_frontend_eligible(
-        cls, frontend_category: str, entity_tags: list[str], source_path: str, source_platform: str
-    ) -> bool:
-        if frontend_category not in cls._FRONTEND_CATEGORIES:
-            return False
-        if frontend_category == "mag7":
-            return any(tag in cls._MAG7_TAGS for tag in entity_tags)
-        if frontend_category == "ai":
-            return any(tag in cls._AI_TAGS for tag in entity_tags)
-        return source_path.startswith("raw/manual/") and source_platform in cls._CONTENT_PLATFORMS
-
-    @classmethod
-    def _filter_entity_tags(cls, frontend_category: str, entity_tags: list[str]) -> list[str]:
-        if frontend_category == "mag7":
-            return [tag for tag in entity_tags if tag in cls._MAG7_TAGS]
-        if frontend_category == "ai":
-            return [tag for tag in entity_tags if tag in cls._AI_TAGS]
-        return entity_tags
+    def _map_source_row(self, source: IntelligenceSourceRow) -> IntelligenceSource:
+        return IntelligenceSource(
+            id=f"source:{source.id}",
+            source_name=source.source_name,
+            source_platform=source.source_platform,
+            source_type=source.source_type,
+            author_name=source.author_name,
+            author_avatar_url=source.author_avatar_url,
+            source_date=self._normalize_date(source.source_date),
+            title=source.title,
+            summary=source.summary or "",
+            source_url=source.source_url,
+            raw_content=source.raw_content or "",
+        )
 
     @staticmethod
     def _normalize_date(val: object) -> str:
@@ -133,3 +204,14 @@ class EntityDynamicsService:
     def _extract_title(content: str) -> str:
         match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
         return match.group(1).strip() if match else "Untitled"
+
+    @staticmethod
+    def _short_raw_excerpt(content: Optional[str], max_chars: int = 180) -> str:
+        text = re.sub(r"\s+", " ", content or "").strip()
+        if not text or len(text) > max_chars:
+            return ""
+        return text
+
+    @staticmethod
+    def _contains_cjk(text: str) -> bool:
+        return bool(re.search(r"[\u4e00-\u9fff]", text))

@@ -1,230 +1,204 @@
+import { ExternalLink, Layers } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Activity, BookOpen, Calendar, FileText, Mic } from "lucide-react";
-import { useLanguage } from "../../../app/language";
+import type React from "react";
+import { labelForEvent, type Language } from "../labels";
 import { useEntityFeed } from "../hooks";
-import type { ContentType, FeedItem, FrontendCategory } from "../types";
-
-const CATEGORIES: { id: "all" | FrontendCategory; label: string; labelEn: string }[] = [
-  { id: "all", label: "全部动态", labelEn: "All Updates" },
-  { id: "mag7", label: "核心巨头", labelEn: "Mega Caps" },
-  { id: "ai", label: "AI 独角兽", labelEn: "AI Unicorns" },
-  { id: "content", label: "深度内容", labelEn: "Deep Content" },
-];
-
-const SECONDARY_TAGS: Record<FrontendCategory, string[]> = {
-  mag7: ["AMZN", "MSFT", "NVDA", "AAPL", "META", "GOOGL", "TSLA", "BRK", "TSMC"],
-  ai: ["OpenAI", "Anthropic"],
-  content: ["YouTube", "X", "WeChat", "Web"],
-};
-
-const CONTENT_ICONS: Record<ContentType, { Icon: React.ElementType; className: string }> = {
-  podcast: { Icon: Mic, className: "text-purple-500" },
-  article: { Icon: FileText, className: "text-slate-500" },
-  news: { Icon: Activity, className: "text-blue-500" },
-  release: { Icon: FileText, className: "text-green-500" },
-  tweet: { Icon: Activity, className: "text-sky-500" },
-  research: { Icon: BookOpen, className: "text-orange-500" },
-};
-
-function isToday(dateStr: string): boolean {
-  return dateStr.startsWith(new Date().toISOString().slice(0, 10));
-}
-
-function getContentIcon(contentType: string) {
-  return CONTENT_ICONS[contentType as ContentType] ?? { Icon: FileText, className: "text-slate-500" };
-}
+import type { Channel, FeedItem } from "../types";
 
 interface Props {
+  channel: Channel;
+  filter: string;
+  entity: string;
+  search: string;
+  minScore: number;
+  language: Language;
   onSelectItem: (slug: string) => void;
   selectedSlug: string | null;
 }
 
-export function EntityFeed({ onSelectItem, selectedSlug }: Props) {
-  const { isZh } = useLanguage();
-  const { data, isLoading, error } = useEntityFeed();
-  const [activeCategory, setActiveCategory] = useState<"all" | FrontendCategory>("all");
-  const [activeEntity, setActiveEntity] = useState<string>("all");
+function groupByDate(items: FeedItem[]) {
+  return items.reduce<Record<string, FeedItem[]>>((groups, item) => {
+    const date = item.source_date.slice(0, 10) || "Unknown";
+    groups[date] = groups[date] ?? [];
+    groups[date].push(item);
+    return groups;
+  }, {});
+}
 
-  const allItems = data?.items ?? [];
+function formatTime(date: string) {
+  const time = date.slice(11, 16);
+  return time || date;
+}
 
-  const itemsInCategory = useMemo(() => {
-    if (activeCategory === "all") return allItems;
-    return allItems.filter((item) => item.frontend_category === activeCategory);
-  }, [allItems, activeCategory]);
+export function EntityFeed({ channel, filter, entity, search, minScore, language, onSelectItem, selectedSlug }: Props) {
+  const { data, isLoading, error } = useEntityFeed({ channel, filter, entity, search, minScore });
+  const items = data?.items ?? [];
+  const groupedItems = useMemo(() => groupByDate(items), [items]);
+  const dates = Object.keys(groupedItems);
 
-  const entityOptions = useMemo(() => {
-    if (activeCategory === "all") return [];
-    return SECONDARY_TAGS[activeCategory];
-  }, [activeCategory]);
+  if (isLoading) {
+    return <div className="py-16 text-center text-sm text-slate-400 dark:text-slate-500">{language === "zh" ? "加载中..." : "Loading..."}</div>;
+  }
 
-  const availableEntityOptions = useMemo(() => {
-    if (activeCategory === "all") return new Set<string>();
-    return new Set(
-      itemsInCategory.flatMap((item) =>
-        activeCategory === "content" && item.source_platform ? [item.source_platform] : item.entity_tags
-      )
-    );
-  }, [activeCategory, itemsInCategory]);
+  if (error) {
+    return <div className="py-16 text-center text-sm text-red-500 dark:text-red-300">{language === "zh" ? "加载失败，请检查后端服务" : "Failed to load. Check the backend service."}</div>;
+  }
 
-  const filteredItems = useMemo(() => {
-    if (activeEntity === "all") return itemsInCategory;
-    return itemsInCategory.filter((item) =>
-      activeCategory === "content" ? item.source_platform === activeEntity : item.entity_tags.includes(activeEntity)
-    );
-  }, [activeCategory, itemsInCategory, activeEntity]);
-
-  const handleCategoryClick = (id: "all" | FrontendCategory) => {
-    setActiveCategory(id);
-    setActiveEntity("all");
-  };
+  if (dates.length === 0) {
+    return <div className="py-16 text-center text-sm text-slate-400 dark:text-slate-500">{language === "zh" ? "没有找到相关内容" : "No matching items"}</div>;
+  }
 
   return (
-    <div className="flex flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#0b1220]">
-      {/* Filter area */}
-      <div className="mb-6 border-b border-slate-100 pb-5 dark:border-white/10">
-        <div className="flex flex-wrap gap-2 mb-3">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryClick(cat.id)}
-              className={`px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors ${
-                activeCategory === cat.id
-                  ? "bg-slate-800 text-white shadow-sm dark:bg-amber-400 dark:text-slate-950"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-950/70 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-              }`}
-            >
-              {isZh ? cat.label : cat.labelEn}
-            </button>
-          ))}
-        </div>
-
-        {activeCategory !== "all" && entityOptions.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setActiveEntity("all")}
-              className={`px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
-                activeEntity === "all"
-                  ? "border-slate-800 text-slate-800 bg-slate-50 dark:border-amber-400 dark:bg-amber-400/10 dark:text-amber-300"
-                  : "border-slate-200 text-slate-500 hover:border-slate-400 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-500"
-              }`}
-            >
-              {isZh ? "全部" : "All"}
-            </button>
-            {entityOptions.map((entity) => (
-              <button
-                key={entity}
-                onClick={() => {
-                  if (availableEntityOptions.has(entity)) setActiveEntity(entity);
-                }}
-                disabled={!availableEntityOptions.has(entity)}
-                className={`px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
-                  activeEntity === entity
-                    ? "border-blue-500 text-blue-600 bg-blue-50 dark:border-amber-400 dark:bg-amber-400/10 dark:text-amber-300"
-                    : !availableEntityOptions.has(entity)
-                      ? "border-slate-100 text-slate-300 bg-slate-50 cursor-not-allowed dark:border-white/5 dark:bg-slate-950/30 dark:text-slate-700"
-                    : "border-slate-200 text-slate-500 hover:border-slate-400 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-500"
-                }`}
-              >
-                {entity}
-              </button>
+    <div className="pb-8">
+      {dates.map((date) => (
+        <section key={date} className="border-b border-slate-200 py-5 last:border-b-0 dark:border-slate-800">
+          <div className="mb-3 text-xs font-semibold text-slate-400 dark:text-slate-500">{date}</div>
+          <div className="space-y-2">
+            {groupedItems[date].map((item) => (
+              <div key={item.id} className="grid gap-3 md:grid-cols-[64px_22px_minmax(0,1fr)]">
+                <div className="pt-4 text-xs font-mono text-slate-400 dark:text-slate-500">{formatTime(item.source_date)}</div>
+                <div className="relative hidden md:block">
+                  <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-slate-200 dark:bg-slate-800" />
+                  <div className="absolute left-1/2 top-5 size-2.5 -translate-x-1/2 rounded-full border-2 border-white bg-slate-400 dark:border-slate-950 dark:bg-amber-400" />
+                </div>
+                <FeedCard
+                  item={item}
+                  isSelected={item.slug === selectedSlug}
+                  language={language}
+                  onClick={() => onSelectItem(item.slug)}
+                />
+              </div>
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Timeline */}
-      <div className="relative">
-        <div className="absolute left-[11px] top-4 bottom-0 w-[2px] bg-slate-100 dark:bg-slate-800" />
-
-        {isLoading && (
-          <div className="pl-8 py-10 text-center text-slate-400 text-sm dark:text-slate-500">{isZh ? "加载中..." : "Loading..."}</div>
-        )}
-
-        {error && (
-          <div className="pl-8 py-10 text-center text-red-400 text-sm dark:text-red-300">{isZh ? "加载失败，请检查后端服务" : "Failed to load. Check the backend service."}</div>
-        )}
-
-        {!isLoading && !error && filteredItems.length === 0 && (
-          <div className="pl-8 py-10 text-center text-slate-400 text-sm dark:text-slate-500">{isZh ? "没有找到相关的动态内容" : "No matching updates found"}</div>
-        )}
-
-        <div className="space-y-3 pt-1 pb-4">
-          {filteredItems.map((item) => (
-            <FeedCard
-              key={item.slug}
-              item={item}
-              isSelected={item.slug === selectedSlug}
-              onClick={() => onSelectItem(item.slug)}
-            />
-          ))}
-        </div>
-      </div>
+        </section>
+      ))}
     </div>
   );
 }
 
-function FeedCard({
-  item,
-  isSelected,
-  onClick,
-}: {
-  item: FeedItem;
-  isSelected: boolean;
-  onClick: () => void;
-}) {
-  const { isZh } = useLanguage();
-  const { Icon, className: iconClassName } = getContentIcon(item.content_type);
-  const today = isToday(item.source_date);
+function FeedCard({ item, isSelected, language, onClick }: { item: FeedItem; isSelected: boolean; language: Language; onClick: () => void }) {
+  const title = language === "zh" ? item.title_zh || item.title : item.title || item.title_zh;
+  const rawCandidate = language === "zh" ? item.raw_excerpt_zh : item.raw_excerpt;
+  const summaryCandidate =
+    item.display_mode === "raw" && rawCandidate
+      ? rawCandidate
+      : language === "zh"
+        ? item.tldr_zh || item.summary || item.tldr_en
+        : item.summary || item.tldr_en || item.tldr_zh;
+  const summary = summaryCandidate.trim().toLowerCase() === title.trim().toLowerCase() ? "" : summaryCandidate;
+  const platformLabel = item.source_platform;
+  const showAuthorAvatar = item.source_platform === "X" && item.author_name;
+
+  const handleSourceClick = (event: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+    event.stopPropagation();
+    if (item.source_count === 1 && item.source_url) {
+      window.open(item.source_url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    onClick();
+  };
 
   return (
-    <div className="relative pl-8 group cursor-pointer" onClick={onClick}>
-      <div
-        className={`absolute left-[7px] top-[18px] z-10 w-2.5 h-2.5 rounded-full ring-2 ring-white transition-transform group-hover:scale-110 dark:ring-slate-950 ${
-          today ? "bg-green-500" : "bg-slate-400"
-        }`}
-      />
-
-      <div
-        className={`border rounded-xl p-3.5 transition-all duration-200 ${
-          isSelected
-            ? "bg-blue-50/60 border-blue-300 shadow-sm dark:border-amber-400/60 dark:bg-amber-400/10"
-            : "bg-white border-slate-100/60 hover:shadow-sm hover:bg-slate-50/50 group-hover:border-blue-200 dark:border-slate-800 dark:bg-[#111827] dark:hover:bg-slate-800 dark:group-hover:border-slate-600"
-        }`}
-      >
-        <div className="flex justify-between items-start mb-1.5">
-          <div className="flex items-center gap-2.5">
-            <span className="text-[11px] font-mono text-slate-400 flex items-center dark:text-slate-500">
-              <Calendar className="w-[10px] h-[10px] mr-1" />
-              {item.source_date}
+    <article
+      className={`block w-full rounded-md border px-4 py-3 text-left transition-colors ${
+        isSelected
+          ? "border-slate-900 bg-slate-900 text-white dark:border-amber-400 dark:bg-amber-400/10 dark:text-slate-100"
+          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-900/80"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 dark:text-slate-500">
+          {showAuthorAvatar && (
+            <span className="inline-flex min-w-0 items-center gap-1.5">
+              <AuthorAvatar authorName={item.author_name} avatarUrl={item.author_avatar_url} />
+              <span className="truncate">{item.author_name}</span>
             </span>
-            <div className="flex gap-1">
-              {(item.frontend_category === "content" && item.source_platform
-                ? [item.source_platform]
-                : item.entity_tags
-              ).map((tag) => (
-                <span
-                  key={tag}
-                  className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white border border-slate-200 text-slate-500 uppercase tracking-wider dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-          <Icon className={`w-3.5 h-3.5 opacity-70 ${iconClassName}`} />
+          )}
+          {platformLabel && <span>{platformLabel}</span>}
+          <button type="button" onClick={handleSourceClick} className="inline-flex items-center gap-1 transition-colors hover:text-slate-900 dark:hover:text-white">
+            <Layers className="size-3" />
+            {item.source_count} {language === "zh" ? "来源" : "sources"}
+          </button>
+          {item.source_url && <ExternalLink className="size-3" />}
         </div>
-
-        <h3
-          className={`text-[14px] font-bold mb-1 transition-colors line-clamp-1 leading-snug ${
-            isSelected ? "text-blue-700 dark:text-amber-300" : "text-slate-800 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-amber-300"
-          }`}
-        >
-          {isZh ? item.title_zh || item.title : item.title || item.title_zh}
-        </h3>
-        <p className="text-[13px] text-slate-500 line-clamp-2 leading-relaxed dark:text-slate-400">
-          {isZh ? item.tldr_zh || item.tldr_en : item.tldr_en || item.tldr_zh}
-        </p>
+        {item.importance_score !== null && (
+          <span
+            className={`shrink-0 rounded-md border px-2 py-1 text-xs font-bold leading-none ${
+              item.importance_score >= 80
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-200"
+                : item.importance_score >= 60
+                  ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/15 dark:text-amber-200"
+                  : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+            }`}
+          >
+            {item.importance_score}
+          </span>
+        )}
       </div>
-    </div>
+
+      <button type="button" onClick={onClick} className="mt-2 block w-full text-left">
+        <h3 className={`text-[15px] font-bold leading-snug ${isSelected ? "" : "text-slate-900 dark:text-slate-100"}`}>
+          {title}
+        </h3>
+        {summary && (
+          <p className={`mt-1 line-clamp-2 text-[13px] leading-6 ${isSelected ? "text-slate-200 dark:text-slate-300" : "text-slate-600 dark:text-slate-400"}`}>
+            {summary}
+          </p>
+        )}
+      </button>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {item.entity_labels.map((tag) => (
+          <span
+            key={tag}
+            className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+              isSelected
+                ? "bg-white/10 text-white dark:bg-amber-400/15 dark:text-amber-200"
+                : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+            }`}
+          >
+            {tag}
+          </span>
+        ))}
+        {item.event_tags.map((tag) => (
+          <span
+            key={tag}
+            className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
+              isSelected
+                ? "border-white/20 text-slate-100 dark:border-amber-400/30 dark:text-amber-200"
+                : "border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
+            }`}
+          >
+            {labelForEvent(tag, language)}
+          </span>
+        ))}
+      </div>
+    </article>
   );
+}
+
+function AuthorAvatar({ authorName, avatarUrl }: { authorName: string | null; avatarUrl: string | null }) {
+  const [failed, setFailed] = useState(false);
+  if (avatarUrl && !failed) {
+    return (
+      <img
+        src={avatarUrl}
+        alt=""
+        className="size-4 shrink-0 rounded-full bg-slate-200 object-cover dark:bg-slate-700"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return (
+    <span className="grid size-4 shrink-0 place-items-center rounded-full bg-slate-200 text-[9px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+      {avatarInitial(authorName)}
+    </span>
+  );
+}
+
+function avatarInitial(authorName: string | null) {
+  const normalized = (authorName || "").replace(/^@/, "").trim();
+  return (normalized[0] || "X").toUpperCase();
 }

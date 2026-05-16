@@ -5,6 +5,7 @@ from fastapi import Depends
 from app.core.config import get_settings
 from app.core.database import Database
 from app.repositories.index_valuation_repository import IndexValuationRepository
+from app.repositories.intelligence_feed_repository import IntelligenceFeedRepository
 from app.repositories.instrument_repository import InstrumentRepository
 from app.repositories.market_breadth_repository import MarketBreadthRepository
 from app.repositories.price_repository import PriceRepository
@@ -70,5 +71,8 @@ def get_strategy_lab_service(database: Database = Depends(get_database)) -> Stra
     )
 
 
-def get_entity_dynamics_service() -> EntityDynamicsService:
-    return EntityDynamicsService(get_settings().second_brain_path)
+def get_entity_dynamics_service(database: Database = Depends(get_database)) -> EntityDynamicsService:
+    return EntityDynamicsService(
+        second_brain_path=get_settings().second_brain_path,
+        intelligence_feed_repository=IntelligenceFeedRepository(database),
+    )

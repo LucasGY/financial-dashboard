@@ -1,7 +1,13 @@
 import { getJson } from "../../lib/api/client";
-import type { FeedResponse, SourceDetail } from "./types";
+import type { FeedQuery, FeedResponse, SourceDetail } from "./types";
 
-export const getEntityFeed = () => getJson<FeedResponse>("/entity-dynamics/feed");
+export const getEntityFeed = ({ channel, filter = "all", entity = "all", search = "", minScore = 0 }: FeedQuery) => {
+  const params = new URLSearchParams({ channel, filter });
+  if (entity !== "all") params.set("entity", entity);
+  if (search.trim()) params.set("search", search.trim());
+  if (minScore > 0) params.set("min_score", String(minScore));
+  return getJson<FeedResponse>(`/entity-dynamics/feed?${params.toString()}`);
+};
 
 export const getSourceDetail = (slug: string) =>
-  getJson<SourceDetail>(`/entity-dynamics/sources/${slug}`);
+  getJson<SourceDetail>(`/entity-dynamics/sources/${encodeURIComponent(slug)}`);

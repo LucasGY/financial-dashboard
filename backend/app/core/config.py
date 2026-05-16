@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     )
     llm_api_key: str = Field(
         default="",
-        validation_alias=AliasChoices("FD_LLM_API_KEY", "OPENAI_API_KEY"),
+        validation_alias=AliasChoices("FD_LLM_API_KEY", "OPENAI_API_KEY", "API_KEY"),
     )
     llm_base_url: str = Field(
         default="https://api.openai.com/v1",
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     )
     llm_model: str = Field(
         default="gpt-4o-mini",
-        validation_alias=AliasChoices("FD_LLM_MODEL", "OPENAI_MODEL"),
+        validation_alias=AliasChoices("FD_LLM_MODEL", "OPENAI_MODEL", "MODEL"),
     )
     llm_provider: str = Field(
         default="openai_compatible",

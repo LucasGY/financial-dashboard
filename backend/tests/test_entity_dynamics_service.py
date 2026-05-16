@@ -1,0 +1,56 @@
+from datetime import datetime
+
+from app.repositories.models import IntelligenceEventRow, IntelligenceSourceRow
+from app.services.entity_dynamics_service import EntityDynamicsService
+
+
+class FakeRepository:
+    def __init__(self):
+        self.last_entity_id = None
+
+    def fetch_events(self, domain, event_tag, search, min_score=None, entity_id=None, limit=100):
+        self.last_entity_id = entity_id
+        return [
+            IntelligenceEventRow(
+                id=1,
+                event_key="finance:microsoft:kol_opinion:rate",
+                domain=domain,
+                title="MSFT AI capex view",
+                title_zh="",
+                summary="A KOL discusses Microsoft AI capex.",
+                tldr_zh="",
+                first_seen_at=datetime(2026, 5, 15, 9, 30),
+                last_seen_at=datetime(2026, 5, 15, 9, 30),
+                entity_ids=["microsoft", "microsoft"],
+                event_tags=["kol_opinion"],
+                topic_tags=[],
+                importance_score=70,
+                status="new",
+                source_count=1,
+                primary_source=IntelligenceSourceRow(
+                    id=1,
+                    event_id=1,
+                    external_id="1",
+                    source_name="x_list_finance",
+                    source_platform="X",
+                    source_type="KOL",
+                    source_url="https://x.com/example/status/1",
+                    author_avatar_url="https://unavatar.io/x/example",
+                    author_name="@example",
+                    source_date=datetime(2026, 5, 15, 9, 30),
+                    title="MSFT AI capex view",
+                    summary="A KOL discusses Microsoft AI capex.",
+                    raw_content="A KOL discusses Microsoft AI capex.",
+                ),
+            )
+        ]
+
+
+def test_finance_feed_passes_entity_filter_and_dedupes_entity_labels(tmp_path):
+    repository = FakeRepository()
+    service = EntityDynamicsService(second_brain_path=str(tmp_path), intelligence_feed_repository=repository)
+
+    response = service.get_feed(channel="finance", filter_key="all", entity="microsoft")
+
+    assert repository.last_entity_id == "microsoft"
+    assert response.items[0].entity_labels == ["MSFT"]

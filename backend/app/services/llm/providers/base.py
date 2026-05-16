@@ -13,4 +13,10 @@ class LLMMessage:
 class LLMProvider(Protocol):
     def is_configured(self) -> bool: ...
 
-    def generate(self, messages: list[LLMMessage], temperature: float = 0.0) -> str: ...
+    def generate(
+        self,
+        messages: list[LLMMessage],
+        temperature: float = 0.0,
+        response_format: dict | None = None,
+        max_tokens: int | None = None,
+    ) -> str: ...

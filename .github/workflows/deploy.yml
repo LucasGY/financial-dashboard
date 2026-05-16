@@ -58,6 +58,7 @@ jobs:
       SERVER_APP_DIR: ${{ vars.SERVER_APP_DIR }}
       BACKEND_SERVICE_NAME: ${{ vars.BACKEND_SERVICE_NAME }}
       FRONTEND_WEB_ROOT: ${{ vars.FRONTEND_WEB_ROOT }}
+      RSS_INGEST_TIMER_NAME: ${{ vars.RSS_INGEST_TIMER_NAME }}
       REPOSITORY_URL: https://github.com/${{ github.repository }}.git
 
     steps:
@@ -73,21 +74,26 @@ jobs:
           APP_DIR_VALUE="${SERVER_APP_DIR:-}"
           BACKEND_SERVICE_VALUE="${BACKEND_SERVICE_NAME:-}"
           FRONTEND_WEB_ROOT_VALUE="${FRONTEND_WEB_ROOT:-}"
+          RSS_INGEST_TIMER_VALUE="${RSS_INGEST_TIMER_NAME:-}"
           REPOSITORY_URL_VALUE="$REPOSITORY_URL"
           APP_DIR_ESCAPED="$(printf '%q' "$APP_DIR_VALUE")"
           BACKEND_SERVICE_ESCAPED="$(printf '%q' "$BACKEND_SERVICE_VALUE")"
           FRONTEND_WEB_ROOT_ESCAPED="$(printf '%q' "$FRONTEND_WEB_ROOT_VALUE")"
+          RSS_INGEST_TIMER_ESCAPED="$(printf '%q' "$RSS_INGEST_TIMER_VALUE")"
           REPOSITORY_URL_ESCAPED="$(printf '%q' "$REPOSITORY_URL_VALUE")"
 
           ssh -i ~/.ssh/deploy_key \
             -o IdentitiesOnly=yes \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "SERVER_APP_DIR=$APP_DIR_ESCAPED BACKEND_SERVICE_NAME=$BACKEND_SERVICE_ESCAPED FRONTEND_WEB_ROOT=$FRONTEND_WEB_ROOT_ESCAPED REPOSITORY_URL=$REPOSITORY_URL_ESCAPED bash -se" <<'REMOTE'
+            "SERVER_APP_DIR=$APP_DIR_ESCAPED BACKEND_SERVICE_NAME=$BACKEND_SERVICE_ESCAPED FRONTEND_WEB_ROOT=$FRONTEND_WEB_ROOT_ESCAPED RSS_INGEST_TIMER_NAME=$RSS_INGEST_TIMER_ESCAPED REPOSITORY_URL=$REPOSITORY_URL_ESCAPED bash -se" <<'REMOTE'
           set -euo pipefail
 
           APP_DIR="${SERVER_APP_DIR:-/opt/financial-dashboard}"
           BACKEND_SERVICE="${BACKEND_SERVICE_NAME:-financial-dashboard-backend}"
           FRONTEND_ROOT="${FRONTEND_WEB_ROOT:-}"
+          RSS_TIMER="${RSS_INGEST_TIMER_NAME:-financial-dashboard-rss-ingest}"
+          RSS_SERVICE="${RSS_TIMER}.service"
+          RSS_TIMER_UNIT="${RSS_TIMER}.timer"
 
           ensure_command() {
             if ! command -v "$1" >/dev/null 2>&1; then
@@ -123,6 +129,10 @@ jobs:
             echo "Missing database env file. Create $APP_DIR/.db.env or $APP_DIR/backend/.db.env on the server." >&2
             exit 1
           fi
+          if [ ! -f "$APP_DIR/.rss" ]; then
+            echo "Missing RSS source file. Create $APP_DIR/.rss on the server; it is intentionally not committed." >&2
+            exit 1
+          fi
 
           load_node_runtime
           ensure_command node
@@ -150,6 +160,35 @@ jobs:
           fi
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/pip install -r requirements.txt
+
+          sudo tee "/etc/systemd/system/$RSS_SERVICE" >/dev/null <<SERVICE
+          [Unit]
+          Description=Financial Dashboard RSS intelligence ingest
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=oneshot
+          WorkingDirectory=$APP_DIR
+          ExecStart=/bin/bash -lc 'set -euo pipefail; cd "$APP_DIR"; if [ -f .db.env ]; then set -a; . ./.db.env; set +a; elif [ -f backend/.db.env ]; then set -a; . ./backend/.db.env; set +a; fi; backend/.venv/bin/python backend/scripts/ingest_rss_sources.py'
+          SERVICE
+
+          sudo tee "/etc/systemd/system/$RSS_TIMER_UNIT" >/dev/null <<TIMER
+          [Unit]
+          Description=Run Financial Dashboard RSS intelligence ingest hourly
+
+          [Timer]
+          OnBootSec=5min
+          OnUnitActiveSec=1h
+          Persistent=true
+          Unit=$RSS_SERVICE
+
+          [Install]
+          WantedBy=timers.target
+          TIMER
+
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now "$RSS_TIMER_UNIT"
 
           sudo systemctl restart "$BACKEND_SERVICE"
           sudo nginx -t

@@ -14,9 +14,24 @@ class OpenAICompatibleProvider:
     def is_configured(self) -> bool:
         return bool(self._settings.llm_api_key)
 
-    def generate(self, messages: list[LLMMessage], temperature: float = 0.0) -> str:
+    def generate(
+        self,
+        messages: list[LLMMessage],
+        temperature: float = 0.0,
+        response_format: dict | None = None,
+        max_tokens: int | None = None,
+    ) -> str:
         if not self.is_configured():
             raise DataUnavailableError("llm provider is not configured")
+        payload = {
+            "model": self._settings.llm_model,
+            "temperature": temperature,
+            "messages": [{"role": item.role, "content": item.content} for item in messages],
+        }
+        if response_format:
+            payload["response_format"] = response_format
+        if max_tokens:
+            payload["max_tokens"] = max_tokens
 
         response = httpx.post(
             f"{self._settings.llm_base_url.rstrip('/')}/chat/completions",
@@ -24,12 +39,8 @@ class OpenAICompatibleProvider:
                 "Authorization": f"Bearer {self._settings.llm_api_key}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": self._settings.llm_model,
-                "temperature": temperature,
-                "messages": [{"role": item.role, "content": item.content} for item in messages],
-            },
-            timeout=20.0,
+            json=payload,
+            timeout=90.0,
         )
         if response.status_code >= 400:
             raise DataUnavailableError("llm provider request failed")
