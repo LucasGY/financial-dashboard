@@ -164,6 +164,120 @@ def test_synthesize_events_uses_llm_entities_and_does_not_send_rule_labels():
     assert '"entity_ids": []' not in prompt
 
 
+def test_synthesize_events_sends_source_role_relationships_and_asset_count():
+    provider = FakeProvider(
+        """
+        {
+          "events": [
+            {
+              "source_ids": ["source-1"],
+              "title_en": "OpenAI updates Codex",
+              "title_zh": "OpenAI 更新 Codex",
+              "summary_en": "OpenAI updates Codex.",
+              "summary_zh": "OpenAI 更新 Codex。",
+              "event_tag": "product_tool_update",
+              "entity_ids": ["openai"],
+              "importance_score": 80
+            }
+          ]
+        }
+        """
+    )
+    service = EventSynthesisService(provider)
+    item = {
+        **make_source_item(),
+        "external_id": "source-1",
+        "source_role": "related_discussion",
+        "assets": [{"type": "image", "url": "https://example.test/a.jpg"}],
+        "quoted_url": "https://x.com/openai/status/1",
+        "reposted_url": None,
+        "reply_to_url": None,
+    }
+
+    service.synthesize_events([item])
+
+    payload = json.loads(provider.messages[1].content)
+    prompt_item = payload["items"][0]
+    assert prompt_item["source_role"] == "related_discussion"
+    assert prompt_item["assets_count"] == 1
+    assert prompt_item["quoted_url"] == "https://x.com/openai/status/1"
+    assert "Primary sources define event facts" in provider.messages[0].content
+
+
+def test_synthesize_events_filters_background_entities_for_arxiv_paper():
+    provider = FakeProvider(
+        """
+        {
+          "events": [
+            {
+              "source_ids": ["paper-1"],
+              "title_en": "Two-Dimensional Framework for AI Agent Design Patterns",
+              "title_zh": "AI智能体设计模式的二维框架",
+              "summary_en": "A framework classifies agent design patterns across cognitive and topology axes.",
+              "summary_zh": "该框架按认知和拓扑维度分类智能体设计模式。",
+              "event_tag": "paper_research",
+              "entity_ids": ["anthropic", "google"],
+              "importance_score": 80
+            }
+          ]
+        }
+        """
+    )
+    service = EventSynthesisService(provider)
+    item = {
+        **make_source_item(),
+        "external_id": "paper-1",
+        "source_platform": "Paper",
+        "source_type": "Researcher",
+        "title": "A Two-Dimensional Framework for AI Agent Design Patterns",
+        "raw_content": (
+            "Existing frameworks for LLM-based agent architectures describe systems from a single perspective: "
+            "industry guides (Anthropic, Google, LangChain) focus on execution topology. "
+            "We propose a two-dimensional classification that combines cognitive function and execution topology."
+        ),
+    }
+
+    groups = service.synthesize_events([item])
+
+    assert len(groups) == 1
+    assert groups[0][1].entity_ids == []
+
+
+def test_synthesize_events_keeps_paper_entity_when_entity_is_in_title():
+    provider = FakeProvider(
+        """
+        {
+          "events": [
+            {
+              "source_ids": ["paper-1"],
+              "title_en": "NVIDIA trains billion-parameter models without backpropagation",
+              "title_zh": "NVIDIA无需反向传播训练十亿参数模型",
+              "summary_en": "NVIDIA demonstrates Evolution Strategies for training large models.",
+              "summary_zh": "NVIDIA展示了用进化策略训练大型模型。",
+              "event_tag": "paper_research",
+              "entity_ids": ["nvidia"],
+              "importance_score": 80
+            }
+          ]
+        }
+        """
+    )
+    service = EventSynthesisService(provider)
+    item = {
+        **make_source_item(),
+        "external_id": "paper-1",
+        "source_platform": "Paper",
+        "source_type": "Researcher",
+        "title": "NVIDIA trains billion-parameter models without backpropagation",
+        "raw_content": "The paper presents NVIDIA research on Evolution Strategies.",
+    }
+
+    groups = service.synthesize_events([item])
+
+    assert len(groups) == 1
+    assert groups[0][1].entity_ids == ["nvidia"]
+
+
 def test_match_existing_event_uses_llm_merge_decision():
     provider = FakeProvider(
         """

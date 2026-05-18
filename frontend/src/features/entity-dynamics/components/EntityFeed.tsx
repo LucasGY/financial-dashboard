@@ -88,10 +88,19 @@ function FeedCard({ item, isSelected, language, onClick }: { item: FeedItem; isS
   const summary = summaryCandidate.trim().toLowerCase() === title.trim().toLowerCase() ? "" : summaryCandidate;
   const platformLabel = item.source_platform;
   const showAuthorAvatar = item.source_platform === "X" && item.author_name;
+  const shouldOpenOriginal = item.source_count === 1 && !item.has_related_discussions && item.source_role === "primary" && Boolean(item.source_url);
+
+  const openOriginalOrDetail = () => {
+    if (shouldOpenOriginal && item.source_url) {
+      window.open(item.source_url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    onClick();
+  };
 
   const handleSourceClick = (event: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     event.stopPropagation();
-    if (item.source_count === 1 && item.source_url) {
+    if (shouldOpenOriginal && item.source_url) {
       window.open(item.source_url, "_blank", "noopener,noreferrer");
       return;
     }
@@ -100,7 +109,16 @@ function FeedCard({ item, isSelected, language, onClick }: { item: FeedItem; isS
 
   return (
     <article
-      className={`block w-full rounded-md border px-4 py-3 text-left transition-colors ${
+      role="button"
+      tabIndex={0}
+      onClick={openOriginalOrDetail}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openOriginalOrDetail();
+        }
+      }}
+      className={`block w-full cursor-pointer rounded-md border px-4 py-3 text-left transition-colors ${
         isSelected
           ? "border-slate-900 bg-slate-900 text-white dark:border-amber-400 dark:bg-amber-400/10 dark:text-slate-100"
           : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-900/80"
@@ -136,7 +154,14 @@ function FeedCard({ item, isSelected, language, onClick }: { item: FeedItem; isS
         )}
       </div>
 
-      <button type="button" onClick={onClick} className="mt-2 block w-full text-left">
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          openOriginalOrDetail();
+        }}
+        className="mt-2 block w-full text-left"
+      >
         <h3 className={`text-[15px] font-bold leading-snug ${isSelected ? "" : "text-slate-900 dark:text-slate-100"}`}>
           {title}
         </h3>
@@ -146,6 +171,14 @@ function FeedCard({ item, isSelected, language, onClick }: { item: FeedItem; isS
           </p>
         )}
       </button>
+
+      {item.assets.length > 0 && (
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {item.assets.slice(0, 3).map((asset, index) => (
+            <CardAssetPreview key={`${String(asset.url)}-${index}`} asset={asset} />
+          ))}
+        </div>
+      )}
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         {item.entity_labels.map((tag) => (
@@ -201,4 +234,38 @@ function AuthorAvatar({ authorName, avatarUrl }: { authorName: string | null; av
 function avatarInitial(authorName: string | null) {
   const normalized = (authorName || "").replace(/^@/, "").trim();
   return (normalized[0] || "X").toUpperCase();
+}
+
+function CardAssetPreview({ asset }: { asset: Record<string, unknown> }) {
+  const url = typeof asset.url === "string" ? asset.url : "";
+  const type = typeof asset.type === "string" ? asset.type : "image";
+  if (!url) {
+    return null;
+  }
+  if (type === "video") {
+    return (
+      <div className="relative overflow-hidden rounded border border-slate-200 bg-slate-950 dark:border-slate-800">
+        <video
+          src={url}
+          muted
+          playsInline
+          controls
+          preload="metadata"
+          className="aspect-video w-full object-cover"
+        />
+        <span className="pointer-events-none absolute left-2 top-2 rounded bg-black/65 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+          Video
+        </span>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt=""
+      className="aspect-video w-full rounded border border-slate-200 object-cover dark:border-slate-800"
+      loading="lazy"
+      referrerPolicy="no-referrer"
+    />
+  );
 }

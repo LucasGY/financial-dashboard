@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
+from html import unescape
 from typing import Optional
 
 from app.core.database import Database
@@ -40,6 +41,7 @@ class IntelligenceFeedRepository:
         sql = f"""
             SELECT event.*,
                    COUNT(source.id) AS source_count,
+                   SUM(CASE WHEN source.source_role = 'related_discussion' THEN 1 ELSE 0 END) AS related_discussion_count,
                    primary_source.id AS primary_source_id,
                    primary_source.event_id AS primary_source_event_id,
                    primary_source.external_id AS primary_source_external_id,
@@ -47,6 +49,14 @@ class IntelligenceFeedRepository:
                    primary_source.source_platform AS primary_source_platform,
 	                   primary_source.source_type AS primary_source_type,
 	                   primary_source.source_url AS primary_source_url,
+	                   primary_source.source_role AS primary_source_role,
+	                   primary_source.original_url AS primary_source_original_url,
+	                   primary_source.quoted_url AS primary_source_quoted_url,
+	                   primary_source.reposted_url AS primary_source_reposted_url,
+	                   primary_source.reply_to_url AS primary_source_reply_to_url,
+	                   primary_source.assets AS primary_source_assets,
+	                   primary_source.extracted_at AS primary_source_extracted_at,
+	                   primary_source.extraction_status AS primary_source_extraction_status,
 	                   primary_source.author_avatar_url AS primary_source_author_avatar_url,
 	                   primary_source.author_name AS primary_source_author_name,
                    primary_source.source_date AS primary_source_date,
@@ -59,7 +69,9 @@ class IntelligenceFeedRepository:
                 SELECT inner_source.id
                 FROM intelligence_event_source inner_source
                 WHERE inner_source.event_id = event.id
-                ORDER BY inner_source.source_date DESC, inner_source.id DESC
+                ORDER BY CASE WHEN inner_source.source_role = 'primary' THEN 0 ELSE 1 END,
+                         inner_source.source_date DESC,
+                         inner_source.id DESC
                 LIMIT 1
             )
             WHERE {' AND '.join(clauses)}
@@ -82,6 +94,7 @@ class IntelligenceFeedRepository:
         placeholders = ", ".join(["%s"] * len(event_ids))
         sql = f"""
             SELECT event.*, COUNT(source.id) AS source_count
+                   , SUM(CASE WHEN source.source_role = 'related_discussion' THEN 1 ELSE 0 END) AS related_discussion_count
             FROM intelligence_event event
             LEFT JOIN intelligence_event_source source ON source.event_id = event.id
             WHERE event.id IN ({placeholders})
@@ -177,13 +190,24 @@ class IntelligenceFeedRepository:
         source_sql = """
 	            INSERT INTO intelligence_event_source (
 	                event_id, external_id, source_name, source_platform, source_type, source_url,
-	                author_avatar_url, author_name, source_date, title, summary, raw_content
+	                source_role, original_url, quoted_url, reposted_url, reply_to_url, assets, extracted_at,
+	                extraction_status, author_avatar_url, author_name, source_date, title, summary, raw_content
 	            ) VALUES (
 	                %(event_id)s, %(external_id)s, %(source_name)s, %(source_platform)s, %(source_type)s,
-	                %(source_url)s, %(author_avatar_url)s, %(author_name)s, %(source_date)s, %(title)s, %(summary)s, %(raw_content)s
+	                %(source_url)s, %(source_role)s, %(original_url)s, %(quoted_url)s, %(reposted_url)s,
+	                %(reply_to_url)s, %(assets)s, %(extracted_at)s, %(extraction_status)s, %(author_avatar_url)s,
+	                %(author_name)s, %(source_date)s, %(title)s, %(summary)s, %(raw_content)s
 	            )
 	            ON DUPLICATE KEY UPDATE
 	                source_url = VALUES(source_url),
+	                source_role = VALUES(source_role),
+	                original_url = VALUES(original_url),
+	                quoted_url = VALUES(quoted_url),
+	                reposted_url = VALUES(reposted_url),
+	                reply_to_url = VALUES(reply_to_url),
+	                assets = VALUES(assets),
+	                extracted_at = VALUES(extracted_at),
+	                extraction_status = VALUES(extraction_status),
 	                author_avatar_url = VALUES(author_avatar_url),
 	                author_name = VALUES(author_name),
                 title = VALUES(title),
@@ -204,7 +228,7 @@ class IntelligenceFeedRepository:
             row = cursor.fetchone()
             if not row:
                 return
-            cursor.execute(source_sql, {**source, "event_id": row["id"]})
+            cursor.execute(source_sql, _source_payload({**source, "event_id": row["id"]}))
 
     @staticmethod
     def _map_event_row(row: dict) -> IntelligenceEventRow:
@@ -218,6 +242,14 @@ class IntelligenceFeedRepository:
                 source_platform=str(row["primary_source_platform"]),
 	                source_type=str(row["primary_source_type"]),
 	                source_url=row.get("primary_source_url"),
+	                source_role=str(row.get("primary_source_role") or "primary"),
+	                original_url=row.get("primary_source_original_url"),
+	                quoted_url=row.get("primary_source_quoted_url"),
+	                reposted_url=row.get("primary_source_reposted_url"),
+	                reply_to_url=row.get("primary_source_reply_to_url"),
+	                assets=_parse_assets(row.get("primary_source_assets")),
+	                extracted_at=row.get("primary_source_extracted_at"),
+	                extraction_status=row.get("primary_source_extraction_status"),
 	                author_avatar_url=row.get("primary_source_author_avatar_url"),
 	                author_name=row.get("primary_source_author_name"),
                 source_date=row["primary_source_date"],
@@ -241,6 +273,7 @@ class IntelligenceFeedRepository:
             importance_score=int(row.get("importance_score") or 0),
             status=str(row.get("status") or "new"),
             source_count=int(row.get("source_count") or 0),
+            related_discussion_count=int(row.get("related_discussion_count") or 0),
             primary_source=primary_source,
         )
 
@@ -254,6 +287,14 @@ class IntelligenceFeedRepository:
             source_platform=str(row["source_platform"]),
 	            source_type=str(row["source_type"]),
 	            source_url=row.get("source_url"),
+	            source_role=str(row.get("source_role") or "primary"),
+	            original_url=row.get("original_url"),
+	            quoted_url=row.get("quoted_url"),
+	            reposted_url=row.get("reposted_url"),
+	            reply_to_url=row.get("reply_to_url"),
+	            assets=_parse_assets(row.get("assets")),
+	            extracted_at=row.get("extracted_at"),
+	            extraction_status=row.get("extraction_status"),
 	            author_avatar_url=row.get("author_avatar_url"),
 	            author_name=row.get("author_name"),
             source_date=row["source_date"],
@@ -261,3 +302,40 @@ class IntelligenceFeedRepository:
             summary=row.get("summary"),
             raw_content=row.get("raw_content"),
         )
+
+
+def _source_payload(source: dict) -> dict:
+    return {
+        **source,
+        "source_role": source.get("source_role") or "primary",
+        "original_url": source.get("original_url"),
+        "quoted_url": source.get("quoted_url"),
+        "reposted_url": source.get("reposted_url"),
+        "reply_to_url": source.get("reply_to_url"),
+        "assets": json.dumps(source.get("assets") or [], ensure_ascii=False),
+        "extracted_at": source.get("extracted_at"),
+        "extraction_status": source.get("extraction_status") or "rss_only",
+    }
+
+
+def _parse_assets(value: object) -> list[dict]:
+    if isinstance(value, list):
+        return [_normalize_asset(item) for item in value if isinstance(item, dict)]
+    if not value:
+        return []
+    try:
+        parsed = json.loads(str(value))
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [_normalize_asset(item) for item in parsed if isinstance(item, dict)]
+
+
+def _normalize_asset(asset: dict) -> dict:
+    normalized = dict(asset)
+    if isinstance(normalized.get("url"), str):
+        normalized["url"] = unescape(str(normalized["url"]))
+    if isinstance(normalized.get("thumbnail_url"), str):
+        normalized["thumbnail_url"] = unescape(str(normalized["thumbnail_url"]))
+    return normalized

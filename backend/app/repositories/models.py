@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from typing import Optional
@@ -67,6 +67,14 @@ class IntelligenceSourceRow:
     title: str
     summary: Optional[str]
     raw_content: Optional[str]
+    source_role: str = "primary"
+    original_url: Optional[str] = None
+    quoted_url: Optional[str] = None
+    reposted_url: Optional[str] = None
+    reply_to_url: Optional[str] = None
+    assets: list[dict] = field(default_factory=list)
+    extracted_at: Optional[object] = None
+    extraction_status: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -86,4 +94,5 @@ class IntelligenceEventRow:
     importance_score: int
     status: str
     source_count: int
+    related_discussion_count: int = 0
     primary_source: Optional[IntelligenceSourceRow] = None

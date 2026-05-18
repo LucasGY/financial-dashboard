@@ -54,3 +54,52 @@ def test_finance_feed_passes_entity_filter_and_dedupes_entity_labels(tmp_path):
 
     assert repository.last_entity_id == "microsoft"
     assert response.items[0].entity_labels == ["MSFT"]
+
+
+def test_event_detail_uses_source_assets_when_fetch_event_has_no_primary_source(tmp_path):
+    class DetailRepository:
+        def fetch_event(self, event_id):
+            return IntelligenceEventRow(
+                id=event_id,
+                event_key="ai:openai:product_tool_update:codex",
+                domain="ai",
+                title="OpenAI updates Codex",
+                title_zh="OpenAI 更新 Codex",
+                summary="OpenAI updates Codex.",
+                tldr_zh="OpenAI 更新 Codex。",
+                first_seen_at=datetime(2026, 5, 15, 9, 0),
+                last_seen_at=datetime(2026, 5, 15, 9, 30),
+                entity_ids=["openai"],
+                event_tags=["product_tool_update"],
+                topic_tags=[],
+                importance_score=80,
+                status="new",
+                source_count=1,
+            )
+
+        def fetch_sources_for_event(self, event_id):
+            return [
+                IntelligenceSourceRow(
+                    id=1,
+                    event_id=event_id,
+                    external_id="source-1",
+                    source_name="x_list_ai",
+                    source_platform="X",
+                    source_type="KOL",
+                    source_url="https://x.com/openai/status/1",
+                    author_avatar_url=None,
+                    author_name="@openai",
+                    source_date=datetime(2026, 5, 15, 9, 30),
+                    title="OpenAI updates Codex",
+                    summary="OpenAI updates Codex.",
+                    raw_content="OpenAI updates Codex.",
+                    assets=[{"type": "image", "url": "https://pbs.twimg.com/media/a.jpg?format=jpg&name=orig"}],
+                )
+            ]
+
+    service = EntityDynamicsService(second_brain_path=str(tmp_path), intelligence_feed_repository=DetailRepository())
+
+    detail = service.get_detail("event:1")
+
+    assert detail is not None
+    assert detail.assets[0]["url"] == "https://pbs.twimg.com/media/a.jpg?format=jpg&name=orig"

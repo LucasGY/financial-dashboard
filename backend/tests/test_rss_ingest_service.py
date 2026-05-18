@@ -31,6 +31,51 @@ def test_normalize_entry_classifies_and_preserves_x_rss_content():
     assert item["importance_score"] is None
     assert "rule_score" not in item
     assert item["author_avatar_url"] == "https://unavatar.io/x/example"
+    assert item["source_role"] == "primary"
+    assert item["assets"] == []
+    assert item["extraction_status"] == "extracted"
+
+
+def test_normalize_entry_extracts_x_assets_and_quote_relationship():
+    source = RssSource(
+        domain="ai",
+        name="x_list_ai",
+        url="http://49.51.253.23:1200/twitter/list/2010668465980424307",
+        platform="X",
+    )
+    entry = {
+        "id": "https://x.com/commenter/status/2",
+        "link": "https://x.com/commenter/status/2",
+        "title": "Interesting Codex update",
+        "summary": "Interesting Codex update https://x.com/openai/status/1 <img src=\"https://pbs.twimg.com/media/a.jpg\" />",
+        "author": "@commenter",
+        "published": "Fri, 15 May 2026 09:30:00 GMT",
+        "media_content": [{"url": "https://pbs.twimg.com/media/b.png", "type": "image/png"}],
+    }
+
+    item = normalize_entry(source, entry)
+
+    assert item["source_role"] == "related_discussion"
+    assert item["quoted_url"] == "https://x.com/openai/status/1"
+    assert item["reposted_url"] is None
+    assert item["reply_to_url"] is None
+    assert {"type": "image", "url": "https://pbs.twimg.com/media/a.jpg"} in item["assets"]
+    assert {"type": "image", "url": "https://pbs.twimg.com/media/b.png"} in item["assets"]
+
+
+def test_normalize_entry_unescapes_x_asset_urls():
+    source = RssSource(domain="ai", name="x_list_ai", url="http://example.test/rss", platform="X")
+    entry = {
+        "id": "https://x.com/example/status/5",
+        "link": "https://x.com/example/status/5",
+        "title": "Image post",
+        "summary": "<img src=\"https://pbs.twimg.com/media/a.jpg?format=jpg&amp;name=orig\" />",
+        "published": "Fri, 15 May 2026 09:30:00 GMT",
+    }
+
+    item = normalize_entry(source, entry)
+
+    assert item["assets"][0]["url"] == "https://pbs.twimg.com/media/a.jpg?format=jpg&name=orig"
 
 
 def test_normalize_entry_strips_rss_html():

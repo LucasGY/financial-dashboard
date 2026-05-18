@@ -48,7 +48,11 @@ class EventSynthesisService:
             title_zh = _first_text(payload, "title_zh")
             summary = _first_text(payload, "summary_en", "summary")
             summary_zh = _first_text(payload, "summary_zh", "tldr_zh")
-            entity_ids = _normalize_entity_ids(payload.get("entity_ids"))
+            entity_ids = _filter_entity_ids_by_evidence(
+                _normalize_entity_ids(payload.get("entity_ids")),
+                [source_item],
+                event_tag,
+            )
             importance_score = _parse_llm_score(payload.get("importance_score"))
             if not title or not title_zh or not summary or not summary_zh:
                 return fallback
@@ -97,7 +101,11 @@ class EventSynthesisService:
                 title_zh = _first_text(event, "title_zh")
                 summary = _first_text(event, "summary_en", "summary")
                 summary_zh = _first_text(event, "summary_zh", "tldr_zh")
-                entity_ids = _normalize_entity_ids(event.get("entity_ids"))
+                entity_ids = _filter_entity_ids_by_evidence(
+                    _normalize_entity_ids(event.get("entity_ids")),
+                    group_sources,
+                    tag,
+                )
                 if tag not in _allowed_tags(domain) or not title or not title_zh or not summary or not summary_zh:
                     continue
                 importance_score = _parse_llm_score(event.get("importance_score"))
@@ -150,11 +158,16 @@ class EventSynthesisService:
                 role="system",
                 content=(
                     "You transform one cleaned RSS/social source into one concise intelligence event. "
+                    "Primary sources define event facts; related_discussion sources provide commentary, reactions, or amplification. "
                     "Return only valid JSON object. Do not include markdown. The JSON must match this shape: "
                     '{"title_en":"...","title_zh":"...","summary_en":"...","summary_zh":"...",'
                     '"event_tag":"...","entity_ids":["..."],"importance_score":80}. '
                     f"Choose exactly one event_tag from: {allowed_tags}. "
-                    f"Infer entity_ids from content using this canonical alias map: {entity_aliases}."
+                    f"Infer entity_ids from content using this canonical alias map: {entity_aliases}. "
+                    "Entity ids must be primary subjects of the event. Do not tag an entity that is only cited as "
+                    "background, related work, an example, a benchmark comparison, or inside a parenthetical list. "
+                    "For paper_research, leave entity_ids empty unless the paper is specifically about that entity's "
+                    "model, product, dataset, company, or system."
                 ),
             ),
             LLMMessage(
@@ -164,8 +177,13 @@ class EventSynthesisService:
                         "domain": domain,
                         "source_platform": source_item.get("source_platform"),
                         "source_type": source_item.get("source_type"),
+                        "source_role": source_item.get("source_role") or "primary",
                         "raw_title": source_item.get("title"),
                         "raw_content": source_item.get("raw_content") or source_item.get("summary"),
+                        "assets_count": len(source_item.get("assets") or []),
+                        "quoted_url": source_item.get("quoted_url"),
+                        "reposted_url": source_item.get("reposted_url"),
+                        "reply_to_url": source_item.get("reply_to_url"),
                         "output_schema": {
                             "title_en": "short English event title, no clickbait",
                             "title_zh": "short Chinese event title",
@@ -190,10 +208,15 @@ class EventSynthesisService:
                 "source_id": item.get("external_id"),
                 "source_platform": item.get("source_platform"),
                 "source_type": item.get("source_type"),
+                "source_role": item.get("source_role") or "primary",
                 "author_name": item.get("author_name"),
                 "source_date": str(item.get("source_date")),
                 "raw_title": item.get("title"),
                 "raw_content": item.get("raw_content") or item.get("summary") or item.get("title"),
+                "assets_count": len(item.get("assets") or []),
+                "quoted_url": item.get("quoted_url"),
+                "reposted_url": item.get("reposted_url"),
+                "reply_to_url": item.get("reply_to_url"),
             }
             for item in source_items
         ]
@@ -203,13 +226,19 @@ class EventSynthesisService:
                 content=(
                     "You cluster cleaned RSS/social sources into deduplicated intelligence events. "
                     "Merge items only when they describe the same concrete event. "
+                    "Primary sources define event facts; related_discussion sources provide commentary, reactions, or amplification. "
+                    "When primary sources are present, do not let discussion-only sources overwrite the factual event title. "
                     "For X/social items with duplicated title/body, write a readable event title while preserving meaning. "
                     "Return only valid JSON object. Do not include markdown. The JSON must match this shape: "
                     '{"events":[{"source_ids":["..."],"title_en":"...","title_zh":"...",'
                     '"summary_en":"...","summary_zh":"...","event_tag":"...",'
                     '"entity_ids":["..."],"importance_score":80}]}. '
                     f"Each event must choose exactly one event_tag from: {allowed_tags}. "
-                    f"Infer entity_ids from the raw content using this canonical alias map: {entity_aliases}."
+                    f"Infer entity_ids from the raw content using this canonical alias map: {entity_aliases}. "
+                    "Entity ids must be primary subjects of the event. Do not tag an entity that is only cited as "
+                    "background, related work, an example, a benchmark comparison, or inside a parenthetical list. "
+                    "For paper_research, leave entity_ids empty unless the paper is specifically about that entity's "
+                    "model, product, dataset, company, or system."
                 ),
             ),
             LLMMessage(
@@ -329,6 +358,41 @@ def _normalize_entity_ids(value: object) -> list[str]:
             seen.add(entity_id)
             result.append(entity_id)
     return result
+
+
+def _filter_entity_ids_by_evidence(entity_ids: list[str], source_items: list[dict], event_tag: str) -> list[str]:
+    result: list[str] = []
+    for entity_id in entity_ids:
+        aliases = ENTITY_ALIASES.get(entity_id, ())
+        if not aliases:
+            continue
+        title_text = " ".join(str(item.get("title") or "") for item in source_items)
+        body_text = " ".join(
+            str(item.get("raw_content") or item.get("summary") or item.get("title") or "")
+            for item in source_items
+        )
+        title_matches = _count_alias_matches(title_text, aliases)
+        body_matches = _count_alias_matches(body_text, aliases)
+        if title_matches > 0:
+            result.append(entity_id)
+            continue
+        if event_tag == "paper_research" and all(str(item.get("source_platform")) == "Paper" for item in source_items):
+            if body_matches >= 2:
+                result.append(entity_id)
+            continue
+        if body_matches > 0:
+            result.append(entity_id)
+    return result
+
+
+def _count_alias_matches(text: str, aliases: tuple[str, ...]) -> int:
+    lowered = text.lower()
+    count = 0
+    for alias in aliases:
+        normalized_alias = alias.lower()
+        if re.search(rf"(?<![a-z0-9]){re.escape(normalized_alias)}(?![a-z0-9])", lowered):
+            count += len(re.findall(rf"(?<![a-z0-9]){re.escape(normalized_alias)}(?![a-z0-9])", lowered))
+    return count
 
 
 def _first_text(payload: dict, *keys: str) -> str:

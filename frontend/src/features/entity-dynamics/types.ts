@@ -17,6 +17,7 @@ export interface FeedItem {
   source_kind: SourceKind;
   source_platform: string | null;
   source_type: string | null;
+  source_role: string;
   source_name: string | null;
   author_name: string | null;
   author_avatar_url: string | null;
@@ -29,12 +30,14 @@ export interface FeedItem {
   raw_excerpt: string;
   raw_excerpt_zh: string;
   display_mode: string;
+  assets: Array<Record<string, unknown>>;
   entity_ids: string[];
   entity_labels: string[];
   event_tags: string[];
   topic_tags: string[];
   importance_score: number | null;
   source_count: number;
+  has_related_discussions: boolean;
   source_url: string | null;
   status: string;
 }
@@ -48,6 +51,13 @@ export interface IntelligenceSource {
   source_name: string | null;
   source_platform: string | null;
   source_type: string | null;
+  source_role: string;
+  original_url: string | null;
+  quoted_url: string | null;
+  reposted_url: string | null;
+  reply_to_url: string | null;
+  assets: Array<Record<string, unknown>>;
+  extraction_status: string | null;
   author_name: string | null;
   author_avatar_url: string | null;
   source_date: string;

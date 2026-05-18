@@ -9,6 +9,7 @@ from app.repositories.intelligence_feed_repository import IntelligenceFeedReposi
 from app.services.event_synthesis_service import EventSynthesisService
 from app.services.rss_quality_filter import evaluate_rss_item
 from app.services.rss_source_config import RssSource
+from app.services.x_content_extractor import extract_x_content, infer_x_source_role
 
 
 class RssIngestService:
@@ -59,12 +60,14 @@ def normalize_entry(source: RssSource, entry: dict) -> dict:
         summary = summary[len(title):].strip()
     link = str(entry.get("link") or entry.get("id") or "").strip()
     source_type = _infer_source_type(source.platform)
+    extracted = _extract_source_content(source, entry, title, summary)
+    raw_content = extracted["text"] or summary or title
     quality = evaluate_rss_item(
         domain=source.domain,
         source_platform=source.platform,
         source_type=source_type,
         title=title,
-        summary=summary,
+        summary=raw_content,
         entity_ids=[],
         event_tags=[],
         source_url=link or None,
@@ -76,18 +79,51 @@ def normalize_entry(source: RssSource, entry: dict) -> dict:
         "source_platform": source.platform,
         "source_type": source_type,
         "source_url": link or None,
+        "source_role": extracted["source_role"],
+        "original_url": link or None,
+        "quoted_url": extracted["quoted_url"],
+        "reposted_url": extracted["reposted_url"],
+        "reply_to_url": extracted["reply_to_url"],
+        "assets": extracted["assets"],
+        "extracted_at": extracted["extracted_at"],
+        "extraction_status": extracted["extraction_status"],
         "author_avatar_url": _extract_author_avatar_url(source.platform, entry),
         "author_name": entry.get("author"),
         "source_date": _parse_entry_date(entry),
         "title": title,
         "summary": summary,
-        "raw_content": summary or title,
+        "raw_content": raw_content,
         "entity_ids": [],
         "event_tags": [],
         "topic_tags": [],
         "should_ingest": quality.should_ingest,
         "quality_reason": quality.reason,
         "importance_score": None,
+    }
+
+
+def _extract_source_content(source: RssSource, entry: dict, title: str, summary: str) -> dict:
+    if source.platform != "X":
+        return {
+            "text": summary or title,
+            "source_role": "primary",
+            "quoted_url": None,
+            "reposted_url": None,
+            "reply_to_url": None,
+            "assets": [],
+            "extracted_at": None,
+            "extraction_status": "rss_only",
+        }
+    extracted = extract_x_content(entry)
+    return {
+        "text": extracted["text"] or summary or title,
+        "source_role": infer_x_source_role(extracted),
+        "quoted_url": extracted["quoted_url"],
+        "reposted_url": extracted["reposted_url"],
+        "reply_to_url": extracted["reply_to_url"],
+        "assets": extracted["assets"],
+        "extracted_at": extracted["extracted_at"],
+        "extraction_status": extracted["status"],
     }
 
 

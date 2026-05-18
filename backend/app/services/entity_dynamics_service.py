@@ -62,7 +62,7 @@ class EntityDynamicsService:
         if event is None:
             return None
         sources = self._intelligence_feed_repository.fetch_sources_for_event(event_id)
-        item = self._map_event_row(event, event.domain)
+        item = self._map_event_row(_event_with_primary_source(event, sources), event.domain)
         return SourceDetail(
             **item.model_dump(),
             content="\n\n".join(source.raw_content or source.summary or source.title for source in sources),
@@ -147,6 +147,7 @@ class EntityDynamicsService:
             source_kind="feed",
             source_platform=primary.source_platform if primary else None,
             source_type=primary.source_type if primary else None,
+            source_role=primary.source_role if primary else "primary",
             source_name=primary.source_name if primary else None,
             author_name=primary.author_name if primary else None,
             author_avatar_url=primary.author_avatar_url if primary else None,
@@ -159,12 +160,14 @@ class EntityDynamicsService:
             raw_excerpt=raw_excerpt,
             raw_excerpt_zh=raw_excerpt if self._contains_cjk(raw_excerpt) else "",
             display_mode="raw" if raw_excerpt else "summary",
+            assets=primary.assets if primary else [],
             entity_ids=row.entity_ids,
             entity_labels=entity_labels_for_channel(row.entity_ids, channel),
             event_tags=normalize_event_tags_for_domain(row.domain, row.event_tags),
             topic_tags=row.topic_tags,
             importance_score=row.importance_score,
             source_count=row.source_count,
+            has_related_discussions=row.related_discussion_count > 0,
             source_url=primary.source_url if primary else None,
             status=row.status,
         )
@@ -175,6 +178,13 @@ class EntityDynamicsService:
             source_name=source.source_name,
             source_platform=source.source_platform,
             source_type=source.source_type,
+            source_role=source.source_role,
+            original_url=source.original_url,
+            quoted_url=source.quoted_url,
+            reposted_url=source.reposted_url,
+            reply_to_url=source.reply_to_url,
+            assets=source.assets,
+            extraction_status=source.extraction_status,
             author_name=source.author_name,
             author_avatar_url=source.author_avatar_url,
             source_date=self._normalize_date(source.source_date),
@@ -215,3 +225,28 @@ class EntityDynamicsService:
     @staticmethod
     def _contains_cjk(text: str) -> bool:
         return bool(re.search(r"[\u4e00-\u9fff]", text))
+
+
+def _event_with_primary_source(event: IntelligenceEventRow, sources: list[IntelligenceSourceRow]) -> IntelligenceEventRow:
+    if event.primary_source is not None or not sources:
+        return event
+    primary_source = next((source for source in sources if source.source_role == "primary"), sources[0])
+    return IntelligenceEventRow(
+        id=event.id,
+        event_key=event.event_key,
+        domain=event.domain,
+        title=event.title,
+        title_zh=event.title_zh,
+        summary=event.summary,
+        tldr_zh=event.tldr_zh,
+        first_seen_at=event.first_seen_at,
+        last_seen_at=event.last_seen_at,
+        entity_ids=event.entity_ids,
+        event_tags=event.event_tags,
+        topic_tags=event.topic_tags,
+        importance_score=event.importance_score,
+        status=event.status,
+        source_count=event.source_count,
+        related_discussion_count=event.related_discussion_count,
+        primary_source=primary_source,
+    )

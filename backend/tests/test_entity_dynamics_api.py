@@ -20,6 +20,7 @@ class FakeEntityDynamicsService:
                     source_kind="feed",
                     source_platform="X",
                     source_type="KOL",
+                    source_role="primary",
                     source_name="x_list_ai",
                     author_name="@example",
                     source_date="2026-05-15 09:30",
@@ -28,12 +29,14 @@ class FakeEntityDynamicsService:
                     summary="Codex can be controlled from mobile ChatGPT.",
                     tldr_zh="Codex 支持通过 ChatGPT 手机端远程控制。",
                     tldr_en="Codex can be controlled from mobile ChatGPT.",
+                    assets=[{"type": "image", "url": "https://example.test/card.jpg"}],
                     entity_ids=["openai"],
                     entity_labels=["OpenAI"],
                     event_tags=["product_tool_update"],
                     topic_tags=["codex"],
                     importance_score=72,
                     source_count=2,
+                    has_related_discussions=True,
                     source_url="https://x.com/example/status/1",
                     author_avatar_url="https://unavatar.io/x/example",
                     status="new",
@@ -74,6 +77,13 @@ class FakeEntityDynamicsService:
                     source_name="x_list_ai",
                     source_platform="X",
                     source_type="KOL",
+                    source_role="related_discussion",
+                    original_url="https://x.com/example/status/1",
+                    quoted_url="https://x.com/openai/status/1",
+                    reposted_url=None,
+                    reply_to_url=None,
+                    assets=[{"type": "image", "url": "https://example.test/a.jpg"}],
+                    extraction_status="extracted",
                     author_name="@example",
                     source_date="2026-05-15 09:30",
                     title="OpenAI ships a Codex update",
@@ -97,6 +107,8 @@ def test_entity_dynamics_feed_contract(client):
     assert payload["items"][0]["id"] == "event:1"
     assert payload["items"][0]["source_kind"] == "feed"
     assert payload["items"][0]["source_count"] == 2
+    assert payload["items"][0]["has_related_discussions"] is True
+    assert payload["items"][0]["assets"][0]["url"] == "https://example.test/card.jpg"
     assert payload["items"][0]["entity_ids"] == ["openai"]
     assert fake_service.last_min_score == 60
     assert fake_service.last_entity == "microsoft"
@@ -112,3 +124,5 @@ def test_entity_dynamics_detail_contract(client):
     assert payload["id"] == "event:1"
     assert payload["content"] == "Raw source text"
     assert len(payload["sources"]) == 1
+    assert payload["sources"][0]["source_role"] == "related_discussion"
+    assert payload["sources"][0]["assets"][0]["url"] == "https://example.test/a.jpg"
