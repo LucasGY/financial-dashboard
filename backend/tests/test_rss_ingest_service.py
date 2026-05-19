@@ -63,6 +63,25 @@ def test_normalize_entry_extracts_x_assets_and_quote_relationship():
     assert {"type": "image", "url": "https://pbs.twimg.com/media/b.png"} in item["assets"]
 
 
+def test_normalize_entry_ignores_rsshub_quote_assets():
+    source = RssSource(domain="ai", name="x_user_berryxia", url="http://example.test/rss", platform="X")
+    entry = {
+        "id": "https://x.com/berryxia/status/1",
+        "link": "https://x.com/berryxia/status/1",
+        "title": "Cursor Composer 2.5 note",
+        "summary": (
+            'Main post <img src="https://pbs.twimg.com/media/main.png?format=png&amp;name=orig" />'
+            '<div class="rsshub-quote">Cursor quoted post '
+            '<img src="https://pbs.twimg.com/media/quote.png?format=png&amp;name=orig" /></div>'
+        ),
+        "published": "Fri, 15 May 2026 09:30:00 GMT",
+    }
+
+    item = normalize_entry(source, entry)
+
+    assert item["assets"] == [{"type": "image", "url": "https://pbs.twimg.com/media/main.png?format=png&name=orig"}]
+
+
 def test_normalize_entry_unescapes_x_asset_urls():
     source = RssSource(domain="ai", name="x_list_ai", url="http://example.test/rss", platform="X")
     entry = {
@@ -297,6 +316,18 @@ def test_ingest_sources_uses_llm_batch_merge_before_upsert(monkeypatch):
                             "event_tag": "product_tool_update",
                             "entity_ids": ["openai"],
                             "importance_score": 84,
+                            "source_translations": {
+                                "1": {
+                                    "title_zh": "OpenAI 发布 Codex CLI 0.26 并改善速率限制",
+                                    "summary_zh": "该来源称 Codex CLI 改善速率限制。",
+                                    "raw_content_zh": "OpenAI 发布 Codex CLI 0.26 并改善速率限制。",
+                                },
+                                "2": {
+                                    "title_zh": "Codex CLI 现在显示更清晰的速率限制跟踪",
+                                    "summary_zh": "该来源强调速率限制跟踪更清晰。",
+                                    "raw_content_zh": "Codex CLI 现在显示更清晰的速率限制跟踪。",
+                                },
+                            },
                         },
                     )(),
                 )
@@ -343,7 +374,10 @@ def test_ingest_sources_uses_llm_batch_merge_before_upsert(monkeypatch):
     assert first_event["event_tags"] == ["product_tool_update"]
     assert first_event["entity_ids"] == ["openai"]
     assert first_source["external_id"] == "1"
+    assert first_source["title_zh"].startswith("OpenAI 发布")
+    assert first_source["raw_content_zh"].startswith("OpenAI 发布")
     assert second_source["external_id"] == "2"
+    assert second_source["title_zh"].startswith("Codex CLI")
 
 
 def test_ingest_sources_skips_existing_external_ids_before_llm(monkeypatch):

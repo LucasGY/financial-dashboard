@@ -23,6 +23,7 @@ class SyntheticEvent:
     event_tag: str
     entity_ids: list[str]
     importance_score: int
+    source_translations: dict[str, dict[str, str]] | None = None
 
 
 class EventSynthesisService:
@@ -64,6 +65,7 @@ class EventSynthesisService:
                 event_tag=event_tag,
                 entity_ids=entity_ids,
                 importance_score=max(0, min(100, importance_score)),
+                source_translations=_extract_source_translations(payload),
             )
         except Exception:
             return fallback
@@ -122,6 +124,7 @@ class EventSynthesisService:
                             event_tag=tag,
                             entity_ids=entity_ids,
                             importance_score=importance_score,
+                            source_translations=_extract_source_translations(event),
                         ),
                     )
                 )
@@ -149,6 +152,20 @@ class EventSynthesisService:
         except Exception:
             return None
 
+    def translate_sources(self, source_items: list[dict]) -> dict[str, dict[str, str]]:
+        if not source_items or not self._llm_provider or not self._llm_provider.is_configured():
+            return {}
+        try:
+            raw = self._llm_provider.generate(
+                self._source_translation_messages(source_items),
+                temperature=0.0,
+                response_format={"type": "json_object"},
+                max_tokens=4000,
+            )
+            return _extract_source_translations(_parse_json_object(raw))
+        except Exception:
+            return {}
+
     def _messages(self, source_item: dict) -> list[LLMMessage]:
         domain = str(source_item["domain"])
         allowed_tags = ", ".join(sorted(_allowed_tags(domain)))
@@ -161,7 +178,9 @@ class EventSynthesisService:
                     "Primary sources define event facts; related_discussion sources provide commentary, reactions, or amplification. "
                     "Return only valid JSON object. Do not include markdown. The JSON must match this shape: "
                     '{"title_en":"...","title_zh":"...","summary_en":"...","summary_zh":"...",'
-                    '"event_tag":"...","entity_ids":["..."],"importance_score":80}. '
+                    '"event_tag":"...","entity_ids":["..."],"importance_score":80,'
+                    '"sources":[{"source_id":"...","title_en":"...","title_zh":"...",'
+                    '"summary_en":"...","summary_zh":"...","raw_content_en":"...","raw_content_zh":"..."}]}. '
                     f"Choose exactly one event_tag from: {allowed_tags}. "
                     f"Infer entity_ids from content using this canonical alias map: {entity_aliases}. "
                     "Entity ids must be primary subjects of the event. Do not tag an entity that is only cited as "
@@ -192,6 +211,17 @@ class EventSynthesisService:
                             "event_tag": "one allowed tag",
                             "entity_ids": "canonical entity ids inferred from content",
                             "importance_score": "integer 0-100",
+                            "sources": [
+                                {
+                                    "source_id": str(source_item.get("external_id") or ""),
+                                    "title_en": "English translation of raw_title; preserve English if already English",
+                                    "title_zh": "Chinese translation of raw_title; preserve Chinese if already Chinese",
+                                    "summary_en": "English translation or concise English summary of the source",
+                                    "summary_zh": "Chinese translation or concise Chinese summary of the source",
+                                    "raw_content_en": "English translation of raw_content when present",
+                                    "raw_content_zh": "Chinese translation of raw_content when present",
+                                }
+                            ],
                         },
                     },
                     ensure_ascii=False,
@@ -232,7 +262,9 @@ class EventSynthesisService:
                     "Return only valid JSON object. Do not include markdown. The JSON must match this shape: "
                     '{"events":[{"source_ids":["..."],"title_en":"...","title_zh":"...",'
                     '"summary_en":"...","summary_zh":"...","event_tag":"...",'
-                    '"entity_ids":["..."],"importance_score":80}]}. '
+                    '"entity_ids":["..."],"importance_score":80,'
+                    '"sources":[{"source_id":"...","title_en":"...","title_zh":"...",'
+                    '"summary_en":"...","summary_zh":"...","raw_content_en":"...","raw_content_zh":"..."}]}]}. '
                     f"Each event must choose exactly one event_tag from: {allowed_tags}. "
                     f"Infer entity_ids from the raw content using this canonical alias map: {entity_aliases}. "
                     "Entity ids must be primary subjects of the event. Do not tag an entity that is only cited as "
@@ -258,6 +290,17 @@ class EventSynthesisService:
                                     "event_tag": "one allowed tag",
                                     "entity_ids": ["canonical entity ids inferred from the grouped sources"],
                                     "importance_score": "integer 0-100",
+                                    "sources": [
+                                        {
+                                            "source_id": "same id as input source",
+                                            "title_en": "English translation of that source title; preserve English if already English",
+                                            "title_zh": "Chinese translation of that source title; preserve Chinese if already Chinese",
+                                            "summary_en": "English translation or concise English summary of that source",
+                                            "summary_zh": "Chinese translation or concise Chinese summary of that source",
+                                            "raw_content_en": "English translation of raw_content when present",
+                                            "raw_content_zh": "Chinese translation of raw_content when present",
+                                        }
+                                    ],
                                 }
                             ]
                         },
@@ -314,6 +357,36 @@ class EventSynthesisService:
             ),
         ]
 
+    def _source_translation_messages(self, source_items: list[dict]) -> list[LLMMessage]:
+        items = [
+            {
+                "source_id": item.get("external_id") or item.get("id"),
+                "raw_title": item.get("title"),
+                "summary": item.get("summary"),
+                "raw_content": item.get("raw_content") or item.get("summary") or item.get("title"),
+                "source_platform": item.get("source_platform"),
+                "source_type": item.get("source_type"),
+                "author_name": item.get("author_name"),
+            }
+            for item in source_items
+        ]
+        return [
+            LLMMessage(
+                role="system",
+                content=(
+                    "Translate source-level RSS/social content into Chinese for UI language switching. "
+                    "Preserve names, tickers, model names, URLs, and code terms. Do not add facts. "
+                    "Return only valid JSON object with this shape: "
+                    '{"sources":[{"source_id":"...","title_en":"...","title_zh":"...",'
+                    '"summary_en":"...","summary_zh":"...","raw_content_en":"...","raw_content_zh":"..."}]}.'
+                ),
+            ),
+            LLMMessage(
+                role="user",
+                content=json.dumps({"items": items}, ensure_ascii=False),
+            ),
+        ]
+
     @staticmethod
     def _fallback(source_item: dict) -> SyntheticEvent:
         return SyntheticEvent(
@@ -324,6 +397,7 @@ class EventSynthesisService:
             event_tag=str((source_item.get("event_tags") or ["industry"])[0]),
             entity_ids=list(source_item.get("entity_ids") or []),
             importance_score=int(source_item.get("importance_score") or 0),
+            source_translations=_source_translation_from_item(source_item),
         )
 
 
@@ -409,6 +483,52 @@ def _parse_llm_score(value: object) -> int | None:
     except (TypeError, ValueError):
         return None
     return max(0, min(100, score))
+
+
+def _extract_source_translations(payload: dict) -> dict[str, dict[str, str]]:
+    sources = payload.get("sources") or payload.get("source_translations") or []
+    if isinstance(sources, dict):
+        sources = [{"source_id": key, **value} for key, value in sources.items() if isinstance(value, dict)]
+    if not isinstance(sources, list):
+        return {}
+    result: dict[str, dict[str, str]] = {}
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        source_id = str(source.get("source_id") or "").strip()
+        if not source_id:
+            continue
+        title_zh = _first_text(source, "title_zh")
+        title_en = _first_text(source, "title_en")
+        summary_en = _first_text(source, "summary_en")
+        summary_zh = _first_text(source, "summary_zh")
+        raw_content_en = _first_text(source, "raw_content_en")
+        raw_content_zh = _first_text(source, "raw_content_zh")
+        result[source_id] = {
+            "title_en": title_en[:240],
+            "title_zh": title_zh[:240],
+            "summary_en": summary_en[:900],
+            "summary_zh": summary_zh[:900],
+            "raw_content_en": raw_content_en[:4000],
+            "raw_content_zh": raw_content_zh[:4000],
+        }
+    return result
+
+
+def _source_translation_from_item(source_item: dict) -> dict[str, dict[str, str]]:
+    external_id = str(source_item.get("external_id") or "").strip()
+    if not external_id:
+        return {}
+    return {
+        external_id: {
+            "title_en": str(source_item.get("title_en") or "").strip()[:240],
+            "title_zh": str(source_item.get("title_zh") or "").strip()[:240],
+            "summary_en": str(source_item.get("summary_en") or "").strip()[:900],
+            "summary_zh": str(source_item.get("summary_zh") or "").strip()[:900],
+            "raw_content_en": str(source_item.get("raw_content_en") or "").strip()[:4000],
+            "raw_content_zh": str(source_item.get("raw_content_zh") or "").strip()[:4000],
+        }
+    }
 
 
 def _entity_alias_prompt() -> dict[str, list[str]]:

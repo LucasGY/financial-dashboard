@@ -47,7 +47,10 @@ class RssIngestService:
             event = build_event_payload(source_group[0], synthetic_event=synthetic_event, source_group=source_group)
             event = resolve_recent_event_merge(self._repository, self._event_synthesizer, event)
             for source_item in source_group:
-                self._repository.upsert_event_with_source(event=event, source=source_item)
+                self._repository.upsert_event_with_source(
+                    event=event,
+                    source=apply_source_translation(source_item, synthetic_event),
+                )
         return len(normalized_items)
 
 
@@ -91,8 +94,14 @@ def normalize_entry(source: RssSource, entry: dict) -> dict:
         "author_name": entry.get("author"),
         "source_date": _parse_entry_date(entry),
         "title": title,
+        "title_en": "",
+        "title_zh": "",
         "summary": summary,
+        "summary_en": "",
+        "summary_zh": "",
         "raw_content": raw_content,
+        "raw_content_en": "",
+        "raw_content_zh": "",
         "entity_ids": [],
         "event_tags": [],
         "topic_tags": [],
@@ -176,6 +185,20 @@ def build_event_payload(source_item: dict, synthetic_event=None, source_group: l
         "topic_tags": topic_tags,
         "importance_score": importance_score,
         "status": "new",
+    }
+
+
+def apply_source_translation(source_item: dict, synthetic_event=None) -> dict:
+    translations = getattr(synthetic_event, "source_translations", None) or {}
+    source_translation = translations.get(str(source_item.get("external_id") or "")) or {}
+    return {
+        **source_item,
+        "title_en": source_translation.get("title_en") or source_item.get("title_en") or "",
+        "title_zh": source_translation.get("title_zh") or source_item.get("title_zh") or "",
+        "summary_en": source_translation.get("summary_en") or source_item.get("summary_en") or "",
+        "summary_zh": source_translation.get("summary_zh") or source_item.get("summary_zh") or "",
+        "raw_content_en": source_translation.get("raw_content_en") or source_item.get("raw_content_en") or "",
+        "raw_content_zh": source_translation.get("raw_content_zh") or source_item.get("raw_content_zh") or "",
     }
 
 

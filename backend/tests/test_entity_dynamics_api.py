@@ -87,10 +87,13 @@ class FakeEntityDynamicsService:
                     author_name="@example",
                     source_date="2026-05-15 09:30",
                     title="OpenAI ships a Codex update",
+                    title_zh="OpenAI 发布 Codex 更新",
                     summary="Codex can be controlled from mobile ChatGPT.",
+                    summary_zh="Codex 支持通过 ChatGPT 手机端远程控制。",
                     source_url="https://x.com/example/status/1",
                     author_avatar_url="https://unavatar.io/x/example",
                     raw_content="Raw source text",
+                    raw_content_zh="原始来源文本",
                 )
             ],
         )
@@ -126,3 +129,5 @@ def test_entity_dynamics_detail_contract(client):
     assert len(payload["sources"]) == 1
     assert payload["sources"][0]["source_role"] == "related_discussion"
     assert payload["sources"][0]["assets"][0]["url"] == "https://example.test/a.jpg"
+    assert payload["sources"][0]["title_zh"] == "OpenAI 发布 Codex 更新"
+    assert payload["sources"][0]["raw_content_zh"] == "原始来源文本"

@@ -5,6 +5,7 @@ import { EntityDrawer } from "../../features/entity-dynamics/components/EntityDr
 import { EntityFeed } from "../../features/entity-dynamics/components/EntityFeed";
 import { IntelligenceSidebar } from "../../features/entity-dynamics/components/IntelligenceSidebar";
 import { TopFilterBar, defaultFilterForChannel } from "../../features/entity-dynamics/components/TopFilterBar";
+import { useLanguage } from "../../app/language";
 import type { Language } from "../../features/entity-dynamics/labels";
 import type { Channel } from "../../features/entity-dynamics/types";
 
@@ -42,7 +43,7 @@ export function EntitiesPage() {
   const [activeEntity, setActiveEntity] = useState("all");
   const [search, setSearch] = useState("");
   const [minScore, setMinScore] = useState(60);
-  const [language, setLanguage] = useState<Language>("zh");
+  const { language } = useLanguage();
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const channelCopy = useMemo(() => CHANNEL_COPY[activeChannel], [activeChannel]);
 
@@ -59,7 +60,7 @@ export function EntitiesPage() {
 
       <main className="lg:pl-64">
         <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-          <div className="mb-5 flex flex-col gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 md:flex-row md:items-end md:justify-between">
+          <div className="mb-5 border-b border-slate-200 pb-5 dark:border-slate-800">
             <div>
               <Link to="/" className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
                 <ArrowLeft className="size-3.5" />
@@ -67,21 +68,6 @@ export function EntitiesPage() {
               </Link>
               <h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">{channelCopy.title}</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">{channelCopy.description[language]}</p>
-            </div>
-            <div className="flex rounded-md border border-slate-200 bg-white p-1 text-xs font-semibold dark:border-slate-800 dark:bg-slate-900">
-              {(["zh", "en"] as const).map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setLanguage(item)}
-                  className={`rounded px-3 py-1.5 transition-colors ${
-                    language === item
-                      ? "bg-slate-900 text-white dark:bg-amber-400 dark:text-slate-950"
-                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                  }`}
-                >
-                  {item === "zh" ? "中文" : "EN"}
-                </button>
-              ))}
             </div>
           </div>
 

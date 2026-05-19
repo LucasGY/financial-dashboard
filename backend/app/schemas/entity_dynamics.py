@@ -25,9 +25,15 @@ class IntelligenceSource(BaseModel):
     author_avatar_url: Optional[str] = None
     source_date: str
     title: str
+    title_en: str = ""
+    title_zh: str = ""
     summary: str = ""
+    summary_en: str = ""
+    summary_zh: str = ""
     source_url: Optional[str] = None
     raw_content: str = ""
+    raw_content_en: str = ""
+    raw_content_zh: str = ""
 
 
 class IntelligenceItem(BaseModel):

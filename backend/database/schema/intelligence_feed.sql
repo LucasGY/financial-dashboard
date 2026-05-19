@@ -40,8 +40,14 @@ CREATE TABLE IF NOT EXISTS intelligence_event_source (
     author_name TEXT NULL,
     source_date DATETIME NOT NULL,
     title TEXT NOT NULL,
+    title_en TEXT NULL,
+    title_zh TEXT NULL,
     summary TEXT NULL,
+    summary_en TEXT NULL,
+    summary_zh TEXT NULL,
     raw_content MEDIUMTEXT NULL,
+    raw_content_en MEDIUMTEXT NULL,
+    raw_content_zh MEDIUMTEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_intelligence_source_external_id (external_id),
@@ -52,3 +58,11 @@ CREATE TABLE IF NOT EXISTS intelligence_event_source (
         REFERENCES intelligence_event(id)
         ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+ALTER TABLE intelligence_event_source
+    ADD COLUMN IF NOT EXISTS title_en TEXT NULL AFTER title,
+    ADD COLUMN IF NOT EXISTS title_zh TEXT NULL AFTER title,
+    ADD COLUMN IF NOT EXISTS summary_en TEXT NULL AFTER summary,
+    ADD COLUMN IF NOT EXISTS summary_zh TEXT NULL AFTER summary,
+    ADD COLUMN IF NOT EXISTS raw_content_en MEDIUMTEXT NULL AFTER raw_content,
+    ADD COLUMN IF NOT EXISTS raw_content_zh MEDIUMTEXT NULL AFTER raw_content;

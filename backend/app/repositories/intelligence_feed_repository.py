@@ -61,8 +61,14 @@ class IntelligenceFeedRepository:
 	                   primary_source.author_name AS primary_source_author_name,
                    primary_source.source_date AS primary_source_date,
                    primary_source.title AS primary_source_title,
+                   primary_source.title_en AS primary_source_title_en,
+                   primary_source.title_zh AS primary_source_title_zh,
                    primary_source.summary AS primary_source_summary,
-                   primary_source.raw_content AS primary_source_raw_content
+                   primary_source.summary_en AS primary_source_summary_en,
+                   primary_source.summary_zh AS primary_source_summary_zh,
+                   primary_source.raw_content AS primary_source_raw_content,
+                   primary_source.raw_content_en AS primary_source_raw_content_en,
+                   primary_source.raw_content_zh AS primary_source_raw_content_zh
             FROM intelligence_event event
             LEFT JOIN intelligence_event_source source ON source.event_id = event.id
             LEFT JOIN intelligence_event_source primary_source ON primary_source.id = (
@@ -116,6 +122,41 @@ class IntelligenceFeedRepository:
             cursor = connection.cursor()
             cursor.execute(sql, [event_id])
             return [self._map_source_row(row) for row in cursor.fetchall()]
+
+    def fetch_sources_missing_translations(self, *, limit: int = 50) -> list[IntelligenceSourceRow]:
+        sql = """
+            SELECT *
+            FROM intelligence_event_source
+            WHERE COALESCE(title_zh, '') = ''
+               OR COALESCE(summary_zh, '') = ''
+               OR (COALESCE(raw_content, '') <> '' AND COALESCE(raw_content_zh, '') = '')
+            ORDER BY source_date DESC, id DESC
+            LIMIT %s
+        """
+        with self._database.connection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(sql, [limit])
+            return [self._map_source_row(row) for row in cursor.fetchall()]
+
+    def update_source_translation(
+        self,
+        *,
+        source_id: int,
+        title_zh: str,
+        summary_zh: str,
+        raw_content_zh: str,
+    ) -> None:
+        sql = """
+            UPDATE intelligence_event_source
+            SET title_zh = %s,
+                summary_zh = %s,
+                raw_content_zh = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """
+        with self._database.connection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(sql, [title_zh, summary_zh, raw_content_zh, source_id])
 
     def fetch_existing_source_external_ids(self, external_ids: list[str]) -> set[str]:
         if not external_ids:
@@ -191,12 +232,14 @@ class IntelligenceFeedRepository:
 	            INSERT INTO intelligence_event_source (
 	                event_id, external_id, source_name, source_platform, source_type, source_url,
 	                source_role, original_url, quoted_url, reposted_url, reply_to_url, assets, extracted_at,
-	                extraction_status, author_avatar_url, author_name, source_date, title, summary, raw_content
+	                extraction_status, author_avatar_url, author_name, source_date, title, title_en, title_zh,
+	                summary, summary_en, summary_zh, raw_content, raw_content_en, raw_content_zh
 	            ) VALUES (
 	                %(event_id)s, %(external_id)s, %(source_name)s, %(source_platform)s, %(source_type)s,
 	                %(source_url)s, %(source_role)s, %(original_url)s, %(quoted_url)s, %(reposted_url)s,
 	                %(reply_to_url)s, %(assets)s, %(extracted_at)s, %(extraction_status)s, %(author_avatar_url)s,
-	                %(author_name)s, %(source_date)s, %(title)s, %(summary)s, %(raw_content)s
+	                %(author_name)s, %(source_date)s, %(title)s, %(title_en)s, %(title_zh)s,
+	                %(summary)s, %(summary_en)s, %(summary_zh)s, %(raw_content)s, %(raw_content_en)s, %(raw_content_zh)s
 	            )
 	            ON DUPLICATE KEY UPDATE
 	                source_url = VALUES(source_url),
@@ -211,8 +254,14 @@ class IntelligenceFeedRepository:
 	                author_avatar_url = VALUES(author_avatar_url),
 	                author_name = VALUES(author_name),
                 title = VALUES(title),
+                title_en = VALUES(title_en),
+                title_zh = VALUES(title_zh),
                 summary = VALUES(summary),
+                summary_en = VALUES(summary_en),
+                summary_zh = VALUES(summary_zh),
                 raw_content = VALUES(raw_content),
+                raw_content_en = VALUES(raw_content_en),
+                raw_content_zh = VALUES(raw_content_zh),
                 updated_at = CURRENT_TIMESTAMP
         """
         event_payload = {
@@ -254,8 +303,14 @@ class IntelligenceFeedRepository:
 	                author_name=row.get("primary_source_author_name"),
                 source_date=row["primary_source_date"],
                 title=str(row["primary_source_title"]),
+                title_en=row.get("primary_source_title_en"),
+                title_zh=row.get("primary_source_title_zh"),
                 summary=row.get("primary_source_summary"),
+                summary_en=row.get("primary_source_summary_en"),
+                summary_zh=row.get("primary_source_summary_zh"),
                 raw_content=row.get("primary_source_raw_content"),
+                raw_content_en=row.get("primary_source_raw_content_en"),
+                raw_content_zh=row.get("primary_source_raw_content_zh"),
             )
         return IntelligenceEventRow(
             id=int(row["id"]),
@@ -299,8 +354,14 @@ class IntelligenceFeedRepository:
 	            author_name=row.get("author_name"),
             source_date=row["source_date"],
             title=str(row["title"]),
+            title_en=row.get("title_en"),
+            title_zh=row.get("title_zh"),
             summary=row.get("summary"),
+            summary_en=row.get("summary_en"),
+            summary_zh=row.get("summary_zh"),
             raw_content=row.get("raw_content"),
+            raw_content_en=row.get("raw_content_en"),
+            raw_content_zh=row.get("raw_content_zh"),
         )
 
 
@@ -315,6 +376,12 @@ def _source_payload(source: dict) -> dict:
         "assets": json.dumps(source.get("assets") or [], ensure_ascii=False),
         "extracted_at": source.get("extracted_at"),
         "extraction_status": source.get("extraction_status") or "rss_only",
+        "title_en": source.get("title_en"),
+        "title_zh": source.get("title_zh"),
+        "summary_en": source.get("summary_en"),
+        "summary_zh": source.get("summary_zh"),
+        "raw_content_en": source.get("raw_content_en"),
+        "raw_content_zh": source.get("raw_content_zh"),
     }
 
 

@@ -68,26 +68,43 @@ def _extract_relationship_urls(entry: dict, html_text: str) -> dict[str, str | N
 def _extract_assets(entry: dict, html_text: str) -> list[dict]:
     assets: list[dict] = []
     seen: set[tuple[str, str]] = set()
+    thumbnail_url = _first_media_thumbnail(entry)
+    primary_html = _strip_rsshub_quote(html_text)
     for url in _media_urls_from_entry(entry):
         url = _clean_url(url)
         media_type = _asset_type(url)
         key = (media_type, url)
         if key not in seen:
             seen.add(key)
-            assets.append({"type": media_type, "url": url})
-    for url in re.findall(r"<img[^>]+src=[\"']([^\"']+)[\"']", html_text, flags=re.IGNORECASE):
+            asset = {"type": media_type, "url": url}
+            if media_type == "video" and thumbnail_url:
+                asset["thumbnail_url"] = thumbnail_url
+            assets.append(asset)
+    for url in re.findall(r"<img[^>]+src=[\"']([^\"']+)[\"']", primary_html, flags=re.IGNORECASE):
         url = _clean_url(url)
         key = ("image", url)
         if key not in seen:
             seen.add(key)
             assets.append({"type": "image", "url": url})
-    for url in re.findall(r"<video[^>]+src=[\"']([^\"']+)[\"']", html_text, flags=re.IGNORECASE):
+    for url in re.findall(r"<video[^>]+src=[\"']([^\"']+)[\"']", primary_html, flags=re.IGNORECASE):
         url = _clean_url(url)
         key = ("video", url)
         if key not in seen:
             seen.add(key)
-            assets.append({"type": "video", "url": url})
+            asset = {"type": "video", "url": url}
+            if thumbnail_url:
+                asset["thumbnail_url"] = thumbnail_url
+            assets.append(asset)
     return assets
+
+
+def _strip_rsshub_quote(html_text: str) -> str:
+    return re.sub(
+        r"<div[^>]+class=[\"'][^\"']*rsshub-quote[^\"']*[\"'][^>]*>.*?</div>",
+        "",
+        html_text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
 
 
 def _clean_url(url: str) -> str:
@@ -108,6 +125,19 @@ def _media_urls_from_entry(entry: dict) -> list[str]:
             if url and _looks_like_media(str(url), media_type):
                 urls.append(str(url))
     return urls
+
+
+def _first_media_thumbnail(entry: dict) -> str | None:
+    values = entry.get("media_thumbnail") or []
+    if not isinstance(values, list):
+        return None
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+        url = value.get("url") or value.get("href")
+        if url:
+            return _clean_url(str(url))
+    return None
 
 
 def _looks_like_media(url: str, media_type: str) -> bool:

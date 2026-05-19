@@ -136,7 +136,21 @@ def test_synthesize_events_uses_llm_entities_and_does_not_send_rule_labels():
               "summary_zh": "两条来源显示，Codex CLI 更新重点改善了速率限制可见性。",
               "event_tag": "product_tool_update",
               "entity_ids": ["openai"],
-              "importance_score": 84
+              "importance_score": 84,
+              "sources": [
+                {
+                  "source_id": "source-1",
+                  "title_zh": "OpenAI 发布 Codex CLI 0.26 并改善速率限制",
+                  "summary_zh": "该来源称 Codex CLI 改善了速率限制可见性。",
+                  "raw_content_zh": "该版本增加了更好的速率限制跟踪。"
+                },
+                {
+                  "source_id": "source-2",
+                  "title_zh": "Codex CLI 现在显示更清晰的速率限制跟踪",
+                  "summary_zh": "该来源强调新的速率限制跟踪。",
+                  "raw_content_zh": "Codex CLI 现在显示更清晰的速率限制跟踪。"
+                }
+              ]
             }
           ]
         }
@@ -157,6 +171,8 @@ def test_synthesize_events_uses_llm_entities_and_does_not_send_rule_labels():
     assert event.summary_zh == "两条来源显示，Codex CLI 更新重点改善了速率限制可见性。"
     assert event.entity_ids == ["openai"]
     assert event.event_tag == "product_tool_update"
+    assert event.source_translations["source-1"]["title_zh"].startswith("OpenAI 发布")
+    assert event.source_translations["source-2"]["raw_content_zh"].startswith("Codex CLI")
     assert provider.response_format == {"type": "json_object"}
     assert provider.max_tokens >= 5000
     prompt = provider.messages[1].content

@@ -189,9 +189,15 @@ class EntityDynamicsService:
             author_avatar_url=source.author_avatar_url,
             source_date=self._normalize_date(source.source_date),
             title=source.title,
+            title_en=source.title_en or "",
+            title_zh=source.title_zh or "",
             summary=source.summary or "",
+            summary_en=source.summary_en or "",
+            summary_zh=source.summary_zh or "",
             source_url=source.source_url,
             raw_content=source.raw_content or "",
+            raw_content_en=source.raw_content_en or "",
+            raw_content_zh=source.raw_content_zh or "",
         )
 
     @staticmethod

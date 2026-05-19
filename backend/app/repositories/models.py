@@ -65,8 +65,14 @@ class IntelligenceSourceRow:
     author_name: Optional[str]
     source_date: object
     title: str
-    summary: Optional[str]
-    raw_content: Optional[str]
+    title_en: Optional[str] = None
+    title_zh: Optional[str] = None
+    summary: Optional[str] = None
+    summary_en: Optional[str] = None
+    summary_zh: Optional[str] = None
+    raw_content: Optional[str] = None
+    raw_content_en: Optional[str] = None
+    raw_content_zh: Optional[str] = None
     source_role: str = "primary"
     original_url: Optional[str] = None
     quoted_url: Optional[str] = None

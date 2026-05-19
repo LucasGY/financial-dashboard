@@ -1,5 +1,5 @@
-import { ExternalLink, Layers } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ExternalLink, Layers, Play, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { labelForEvent, type Language } from "../labels";
 import { useEntityFeed } from "../hooks";
@@ -32,6 +32,7 @@ function formatTime(date: string) {
 
 export function EntityFeed({ channel, filter, entity, search, minScore, language, onSelectItem, selectedSlug }: Props) {
   const { data, isLoading, error } = useEntityFeed({ channel, filter, entity, search, minScore });
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const items = data?.items ?? [];
   const groupedItems = useMemo(() => groupByDate(items), [items]);
   const dates = Object.keys(groupedItems);
@@ -49,34 +50,72 @@ export function EntityFeed({ channel, filter, entity, search, minScore, language
   }
 
   return (
-    <div className="pb-8">
-      {dates.map((date) => (
-        <section key={date} className="border-b border-slate-200 py-5 last:border-b-0 dark:border-slate-800">
-          <div className="mb-3 text-xs font-semibold text-slate-400 dark:text-slate-500">{date}</div>
-          <div className="space-y-2">
-            {groupedItems[date].map((item) => (
-              <div key={item.id} className="grid gap-3 md:grid-cols-[64px_22px_minmax(0,1fr)]">
-                <div className="pt-4 text-xs font-mono text-slate-400 dark:text-slate-500">{formatTime(item.source_date)}</div>
-                <div className="relative hidden md:block">
-                  <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-slate-200 dark:bg-slate-800" />
-                  <div className="absolute left-1/2 top-5 size-2.5 -translate-x-1/2 rounded-full border-2 border-white bg-slate-400 dark:border-slate-950 dark:bg-amber-400" />
+    <>
+      <div className="pb-8">
+        {dates.map((date) => (
+          <section key={date} className="border-b border-slate-200 py-5 last:border-b-0 dark:border-slate-800">
+            <div className="mb-3 text-xs font-semibold text-slate-400 dark:text-slate-500">{date}</div>
+            <div className="space-y-2">
+              {groupedItems[date].map((item) => (
+                <div key={item.id} className="grid gap-3 md:grid-cols-[64px_22px_minmax(0,1fr)]">
+                  <div className="pt-4 text-xs font-mono text-slate-400 dark:text-slate-500">{formatTime(item.source_date)}</div>
+                  <div className="relative hidden md:block">
+                    <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-slate-200 dark:bg-slate-800" />
+                    <div className="absolute left-1/2 top-5 size-2.5 -translate-x-1/2 rounded-full border-2 border-white bg-slate-400 dark:border-slate-950 dark:bg-amber-400" />
+                  </div>
+                  <FeedCard
+                    item={item}
+                    isSelected={item.slug === selectedSlug}
+                    language={language}
+                    onClick={() => onSelectItem(item.slug)}
+                    onOpenImage={setLightboxUrl}
+                  />
                 </div>
-                <FeedCard
-                  item={item}
-                  isSelected={item.slug === selectedSlug}
-                  language={language}
-                  onClick={() => onSelectItem(item.slug)}
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+      {lightboxUrl && <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
+    </>
+  );
+}
+
+function ImageLightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/85 p-4" onClick={onClose}>
+      <button
+        type="button"
+        aria-label="Close image"
+        onClick={onClose}
+        className="absolute right-4 top-4 rounded-md border border-white/20 bg-black/40 p-2 text-white transition-colors hover:bg-white/10"
+      >
+        <X className="size-5" />
+      </button>
+      <img
+        src={url}
+        alt=""
+        className="max-h-[92vh] max-w-[92vw] rounded-md object-contain shadow-2xl"
+        referrerPolicy="no-referrer"
+        onClick={(event) => event.stopPropagation()}
+      />
     </div>
   );
 }
 
-function FeedCard({ item, isSelected, language, onClick }: { item: FeedItem; isSelected: boolean; language: Language; onClick: () => void }) {
+function FeedCard({
+  item,
+  isSelected,
+  language,
+  onClick,
+  onOpenImage,
+}: {
+  item: FeedItem;
+  isSelected: boolean;
+  language: Language;
+  onClick: () => void;
+  onOpenImage: (url: string) => void;
+}) {
   const title = language === "zh" ? item.title_zh || item.title : item.title || item.title_zh;
   const rawCandidate = language === "zh" ? item.raw_excerpt_zh : item.raw_excerpt;
   const summaryCandidate =
@@ -89,6 +128,7 @@ function FeedCard({ item, isSelected, language, onClick }: { item: FeedItem; isS
   const platformLabel = item.source_platform;
   const showAuthorAvatar = item.source_platform === "X" && item.author_name;
   const shouldOpenOriginal = item.source_count === 1 && !item.has_related_discussions && item.source_role === "primary" && Boolean(item.source_url);
+  const visibleAssets = cardAssets(item);
 
   const openOriginalOrDetail = () => {
     if (shouldOpenOriginal && item.source_url) {
@@ -172,10 +212,10 @@ function FeedCard({ item, isSelected, language, onClick }: { item: FeedItem; isS
         )}
       </button>
 
-      {item.assets.length > 0 && (
+      {visibleAssets.length > 0 && (
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {item.assets.slice(0, 3).map((asset, index) => (
-            <CardAssetPreview key={`${String(asset.url)}-${index}`} asset={asset} />
+          {visibleAssets.map((asset, index) => (
+            <CardAssetPreview key={`${String(asset.url)}-${index}`} asset={asset} sourceUrl={item.source_url} onOpenImage={onOpenImage} />
           ))}
         </div>
       )}
@@ -236,36 +276,167 @@ function avatarInitial(authorName: string | null) {
   return (normalized[0] || "X").toUpperCase();
 }
 
-function CardAssetPreview({ asset }: { asset: Record<string, unknown> }) {
+function CardAssetPreview({
+  asset,
+  sourceUrl,
+  onOpenImage,
+}: {
+  asset: Record<string, unknown>;
+  sourceUrl: string | null;
+  onOpenImage: (url: string) => void;
+}) {
   const url = typeof asset.url === "string" ? asset.url : "";
+  const thumbnailUrl = typeof asset.thumbnail_url === "string" ? asset.thumbnail_url : "";
   const type = typeof asset.type === "string" ? asset.type : "image";
   if (!url) {
     return null;
   }
   if (type === "video") {
+    const previewUrl = thumbnailUrl || (isImageUrl(url) ? url : "");
+    const videoPreviewUrl = proxiedVideoUrl(url);
+    const openTarget = sourceUrl || url;
     return (
-      <div className="relative overflow-hidden rounded border border-slate-200 bg-slate-950 dark:border-slate-800">
-        <video
-          src={url}
-          muted
-          playsInline
-          controls
-          preload="metadata"
-          className="aspect-video w-full object-cover"
-        />
-        <span className="pointer-events-none absolute left-2 top-2 rounded bg-black/65 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-          Video
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          window.open(openTarget, "_blank", "noopener,noreferrer");
+        }}
+        className="group relative overflow-hidden rounded border border-slate-200 bg-slate-950 text-left dark:border-slate-800"
+      >
+        {previewUrl ? (
+          <img src={previewUrl} alt="" className="aspect-video w-full object-cover opacity-95 transition-transform group-hover:scale-[1.02]" loading="lazy" referrerPolicy="no-referrer" />
+        ) : (
+          <VideoFrame url={videoPreviewUrl} />
+        )}
+        <span className="absolute inset-0 grid place-items-center bg-black/10 transition-colors group-hover:bg-black/20">
+          <span className="grid size-10 place-items-center rounded-full bg-black/65 text-white shadow-lg">
+            <Play className="ml-0.5 size-5 fill-current" />
+          </span>
         </span>
-      </div>
+      </button>
     );
   }
   return (
-    <img
-      src={url}
-      alt=""
-      className="aspect-video w-full rounded border border-slate-200 object-cover dark:border-slate-800"
-      loading="lazy"
-      referrerPolicy="no-referrer"
-    />
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        onOpenImage(url);
+      }}
+      className="overflow-hidden rounded border border-slate-200 bg-slate-100 text-left dark:border-slate-800 dark:bg-slate-900"
+    >
+      <img
+        src={url}
+        alt=""
+        className="aspect-video w-full object-cover transition-transform hover:scale-[1.02]"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+      />
+    </button>
   );
+}
+
+function isImageUrl(url: string) {
+  return /\.(png|jpe?g|webp|gif)(\?|#|$)/i.test(url);
+}
+
+function VideoFrame({ url }: { url: string }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [frameUrl, setFrameUrl] = useState<string>("");
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFrameUrl("");
+    setFailed(false);
+  }, [url]);
+
+  if (frameUrl) {
+    return <img src={frameUrl} alt="" className="aspect-video w-full object-cover opacity-95 transition-transform group-hover:scale-[1.02]" />;
+  }
+
+  return (
+    <>
+      <div className="grid aspect-video w-full place-items-center bg-slate-900 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {failed ? "Video" : ""}
+      </div>
+      <video
+        ref={videoRef}
+        src={url}
+        crossOrigin="anonymous"
+        muted
+        playsInline
+        preload="auto"
+        className="sr-only"
+        onLoadedMetadata={(event) => {
+          const video = event.currentTarget;
+          video.currentTime = Number.isFinite(video.duration) ? Math.min(1.2, Math.max(0.2, video.duration * 0.25)) : 0.8;
+        }}
+        onSeeked={(event) => {
+          const video = event.currentTarget;
+          if (!video.videoWidth || !video.videoHeight) {
+            setFailed(true);
+            return;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const context = canvas.getContext("2d");
+          if (!context) {
+            setFailed(true);
+            return;
+          }
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          setFrameUrl(canvas.toDataURL("image/jpeg", 0.82));
+        }}
+        onError={() => setFailed(true)}
+      />
+    </>
+  );
+}
+
+function uniqueAssets(assets: Array<Record<string, unknown>>) {
+  const seen = new Set<string>();
+  return assets.filter((asset) => {
+    const key = assetKey(asset);
+    if (!key || seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function cardAssets(item: FeedItem) {
+  const assets = uniqueAssets(item.assets);
+  if (item.source_platform === "X" && assets.length > 1) {
+    return assets.slice(0, 1);
+  }
+  return assets.slice(0, 3);
+}
+
+function assetKey(asset: Record<string, unknown>) {
+  const type = typeof asset.type === "string" ? asset.type : "image";
+  const url = typeof asset.url === "string" ? asset.url : "";
+  return url ? `${type}:${canonicalMediaUrl(url)}` : "";
+}
+
+function canonicalMediaUrl(url: string) {
+  const tweetVideoMatch = url.match(/(?:amplify_video|ext_tw_video)\/(\d+)\//);
+  if (tweetVideoMatch) {
+    return `x-video:${tweetVideoMatch[1]}`;
+  }
+  return url.split("?")[0];
+}
+
+function proxiedVideoUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === "video.twimg.com" || parsed.hostname === "video.x.com") {
+      return `/api/v1/entity-dynamics/media/video?url=${encodeURIComponent(url)}`;
+    }
+  } catch {
+    return url;
+  }
+  return url;
 }

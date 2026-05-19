@@ -62,9 +62,15 @@ export interface IntelligenceSource {
   author_avatar_url: string | null;
   source_date: string;
   title: string;
+  title_en: string;
+  title_zh: string;
   summary: string;
+  summary_en: string;
+  summary_zh: string;
   source_url: string | null;
   raw_content: string;
+  raw_content_en: string;
+  raw_content_zh: string;
 }
 
 export interface SourceDetail extends FeedItem {
