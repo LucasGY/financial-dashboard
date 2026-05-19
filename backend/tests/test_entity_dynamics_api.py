@@ -7,7 +7,7 @@ class FakeEntityDynamicsService:
         self.last_min_score = None
         self.last_entity = None
 
-    def get_feed(self, channel="ai", filter_key="all", search=None, min_score=None, entity=None):
+    def get_feed(self, channel="ai", filter_key="all", search=None, min_score=None, entity=None, limit=35, cursor=None):
         self.last_min_score = min_score
         self.last_entity = entity
         return FeedResponse(

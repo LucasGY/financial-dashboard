@@ -42,7 +42,7 @@ export function EntitiesPage() {
   const [activeFilter, setActiveFilter] = useState(defaultFilterForChannel("ai"));
   const [activeEntity, setActiveEntity] = useState("all");
   const [search, setSearch] = useState("");
-  const [minScore, setMinScore] = useState(60);
+  const [minScore, setMinScore] = useState(10);
   const { language } = useLanguage();
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const channelCopy = useMemo(() => CHANNEL_COPY[activeChannel], [activeChannel]);

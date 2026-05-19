@@ -2,7 +2,7 @@ import { ExternalLink, Layers, Play, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { labelForEvent, type Language } from "../labels";
-import { useEntityFeed } from "../hooks";
+import { usePagedEntityFeed } from "../hooks";
 import type { Channel, FeedItem } from "../types";
 
 interface Props {
@@ -31,11 +31,68 @@ function formatTime(date: string) {
 }
 
 export function EntityFeed({ channel, filter, entity, search, minScore, language, onSelectItem, selectedSlug }: Props) {
-  const { data, isLoading, error } = useEntityFeed({ channel, filter, entity, search, minScore });
+  const { data, isLoading, isLoadingMore, error, loadMore } = usePagedEntityFeed({ channel, filter, entity, search, minScore, limit: 35 });
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const autoLoadEnabledRef = useRef(true);
+  const autoLoadScrollArmedRef = useRef(false);
+  const autoLoadSuppressedUntilRef = useRef(0);
   const items = data?.items ?? [];
   const groupedItems = useMemo(() => groupByDate(items), [items]);
   const dates = Object.keys(groupedItems);
+
+  useEffect(() => {
+    autoLoadEnabledRef.current = true;
+    autoLoadScrollArmedRef.current = false;
+  }, [channel, filter, entity, search, minScore]);
+
+  useEffect(() => {
+    const markAutoLoadReady = () => {
+      if (Date.now() < autoLoadSuppressedUntilRef.current) {
+        return;
+      }
+      autoLoadEnabledRef.current = true;
+      autoLoadScrollArmedRef.current = true;
+    };
+    window.addEventListener("scroll", markAutoLoadReady, { passive: true });
+    return () => window.removeEventListener("scroll", markAutoLoadReady);
+  }, []);
+
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !data.has_more) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          return;
+        }
+        if (
+          !autoLoadEnabledRef.current ||
+          !autoLoadScrollArmedRef.current ||
+          Date.now() < autoLoadSuppressedUntilRef.current ||
+          isLoadingMore
+        ) {
+          return;
+        }
+        autoLoadEnabledRef.current = false;
+        autoLoadScrollArmedRef.current = false;
+        autoLoadSuppressedUntilRef.current = Date.now() + 3000;
+        loadMore();
+      },
+      { rootMargin: "500px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [data.has_more, isLoadingMore, loadMore]);
+
+  const handleLoadMore = () => {
+    autoLoadEnabledRef.current = false;
+    autoLoadScrollArmedRef.current = false;
+    autoLoadSuppressedUntilRef.current = Date.now() + 3000;
+    loadMore();
+  };
 
   if (isLoading) {
     return <div className="py-16 text-center text-sm text-slate-400 dark:text-slate-500">{language === "zh" ? "加载中..." : "Loading..."}</div>;
@@ -75,6 +132,20 @@ export function EntityFeed({ channel, filter, entity, search, minScore, language
             </div>
           </section>
         ))}
+        <div ref={loadMoreRef} className="pt-5 text-center">
+          {data.has_more ? (
+            <button
+              type="button"
+              onClick={handleLoadMore}
+              disabled={isLoadingMore}
+              className="rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              {isLoadingMore ? (language === "zh" ? "加载中..." : "Loading...") : language === "zh" ? "加载更早日期" : "Load older dates"}
+            </button>
+          ) : (
+            <div className="text-xs text-slate-400 dark:text-slate-500">{language === "zh" ? "没有更早内容" : "No older items"}</div>
+          )}
+        </div>
       </div>
       {lightboxUrl && <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
     </>
@@ -285,9 +356,28 @@ function CardAssetPreview({
   sourceUrl: string | null;
   onOpenImage: (url: string) => void;
 }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const previewRef = useRef<HTMLDivElement | null>(null);
   const url = typeof asset.url === "string" ? asset.url : "";
   const thumbnailUrl = typeof asset.thumbnail_url === "string" ? asset.thumbnail_url : "";
   const type = typeof asset.type === "string" ? asset.type : "image";
+  useEffect(() => {
+    const node = previewRef.current;
+    if (!node || isVisible) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [isVisible]);
   if (!url) {
     return null;
   }
@@ -304,11 +394,15 @@ function CardAssetPreview({
         }}
         className="group relative overflow-hidden rounded border border-slate-200 bg-slate-950 text-left dark:border-slate-800"
       >
-        {previewUrl ? (
+        <div ref={previewRef}>
+        {!isVisible ? (
+          <div className="aspect-video w-full bg-slate-900" />
+        ) : previewUrl ? (
           <img src={previewUrl} alt="" className="aspect-video w-full object-cover opacity-95 transition-transform group-hover:scale-[1.02]" loading="lazy" referrerPolicy="no-referrer" />
         ) : (
           <VideoFrame url={videoPreviewUrl} />
         )}
+        </div>
         <span className="absolute inset-0 grid place-items-center bg-black/10 transition-colors group-hover:bg-black/20">
           <span className="grid size-10 place-items-center rounded-full bg-black/65 text-white shadow-lg">
             <Play className="ml-0.5 size-5 fill-current" />
@@ -326,13 +420,19 @@ function CardAssetPreview({
       }}
       className="overflow-hidden rounded border border-slate-200 bg-slate-100 text-left dark:border-slate-800 dark:bg-slate-900"
     >
-      <img
-        src={url}
-        alt=""
-        className="aspect-video w-full object-cover transition-transform hover:scale-[1.02]"
-        loading="lazy"
-        referrerPolicy="no-referrer"
-      />
+      <div ref={previewRef}>
+        {isVisible ? (
+          <img
+            src={url}
+            alt=""
+            className="aspect-video w-full object-cover transition-transform hover:scale-[1.02]"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div className="aspect-video w-full bg-slate-100 dark:bg-slate-900" />
+        )}
+      </div>
     </button>
   );
 }

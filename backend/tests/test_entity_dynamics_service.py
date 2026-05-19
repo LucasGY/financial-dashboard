@@ -8,7 +8,7 @@ class FakeRepository:
     def __init__(self):
         self.last_entity_id = None
 
-    def fetch_events(self, domain, event_tag, search, min_score=None, entity_id=None, limit=100):
+    def fetch_events(self, domain, event_tag, search, min_score=None, entity_id=None, limit=100, offset=0, since=None, before=None):
         self.last_entity_id = entity_id
         return [
             IntelligenceEventRow(

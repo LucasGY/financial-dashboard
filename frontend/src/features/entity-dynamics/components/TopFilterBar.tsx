@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
 import { labelForEvent, type Language } from "../labels";
 import type { Channel } from "../types";
 
@@ -128,22 +129,81 @@ export function TopFilterBar({
               className="min-w-0 flex-1 bg-transparent text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
             />
           </label>
-          <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">
-            <span className="whitespace-nowrap">{language === "zh" ? "最低分" : "Min score"}</span>
-            <select
-              value={minScore}
-              onChange={(event) => onMinScoreChange(Number(event.target.value))}
-              className="bg-transparent text-slate-900 outline-none dark:text-white"
-            >
-              {[0, 50, 60, 70, 80, 90].map((score) => (
-                <option key={score} value={score}>
-                  {score === 0 ? (language === "zh" ? "不限" : "Any") : `${score}+`}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">
+            <span className="whitespace-nowrap">{language === "zh" ? "最低分" : "Min"}</span>
+            <ScoreSlider value={minScore} language={language} onChange={onMinScoreChange} />
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ScoreSlider({
+  value,
+  language,
+  onChange,
+}: {
+  value: number;
+  language: Language;
+  onChange: (score: number) => void;
+}) {
+  const normalizedValue = Math.max(0, Math.min(100, Math.round(value / 10) * 10));
+  const [draftValue, setDraftValue] = useState(normalizedValue);
+  const label = draftValue === 0 ? (language === "zh" ? "不限" : "Any") : `${draftValue}+`;
+
+  useEffect(() => {
+    setDraftValue(normalizedValue);
+  }, [normalizedValue]);
+
+  const commitValue = (score: number) => {
+    const nextScore = Math.max(0, Math.min(100, Math.round(score / 10) * 10));
+    setDraftValue(nextScore);
+    if (nextScore !== normalizedValue) {
+      onChange(nextScore);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-4 text-right text-[10px] font-semibold tabular-nums text-slate-400">0</span>
+      <label className="relative block h-8 w-36">
+        <span className="absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+          <span
+            className="block h-full rounded-full bg-[repeating-linear-gradient(135deg,#fbbf24_0,#fbbf24_7px,#f59e0b_7px,#f59e0b_12px)]"
+            style={{ width: `${draftValue}%` }}
+          />
+          {Array.from({ length: 9 }).map((_, index) => (
+            <span
+              key={index}
+              className="absolute top-0 h-full w-px bg-white/70 dark:bg-slate-950/70"
+              style={{ left: `${(index + 1) * 10}%` }}
+            />
+          ))}
+        </span>
+        <span
+          className="pointer-events-none absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-slate-950 bg-slate-950 shadow-sm dark:border-white dark:bg-white"
+          style={{ left: `${draftValue}%` }}
+        />
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={10}
+          value={draftValue}
+          aria-label={language === "zh" ? `最低分 ${label}` : `Minimum score ${label}`}
+          onChange={(event) => setDraftValue(Number(event.target.value))}
+          onPointerUp={(event) => commitValue(Number(event.currentTarget.value))}
+          onTouchEnd={(event) => commitValue(Number(event.currentTarget.value))}
+          onKeyUp={(event) => commitValue(Number(event.currentTarget.value))}
+          onBlur={(event) => commitValue(Number(event.currentTarget.value))}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        />
+      </label>
+      <span className="w-7 text-[10px] font-semibold tabular-nums text-slate-400">100</span>
+      <span className="w-9 text-right text-xs font-bold tabular-nums text-slate-900 dark:text-white">
+        {draftValue === 0 ? (language === "zh" ? "全" : "All") : draftValue}
+      </span>
     </div>
   );
 }

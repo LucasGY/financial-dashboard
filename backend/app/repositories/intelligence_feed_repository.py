@@ -21,6 +21,9 @@ class IntelligenceFeedRepository:
         min_score: Optional[int] = None,
         entity_id: Optional[str] = None,
         limit: int = 100,
+        offset: int = 0,
+        since: Optional[datetime] = None,
+        before: Optional[datetime] = None,
     ) -> list[IntelligenceEventRow]:
         clauses = ["event.domain = %s"]
         params: list[object] = [domain]
@@ -37,7 +40,13 @@ class IntelligenceFeedRepository:
         if min_score is not None:
             clauses.append("event.importance_score >= %s")
             params.append(min_score)
-        params.append(limit)
+        if since is not None:
+            clauses.append("event.last_seen_at >= %s")
+            params.append(since)
+        if before is not None:
+            clauses.append("event.last_seen_at < %s")
+            params.append(before)
+        params.extend([limit, offset])
         sql = f"""
             SELECT event.*,
                    COUNT(source.id) AS source_count,
@@ -83,7 +92,7 @@ class IntelligenceFeedRepository:
             WHERE {' AND '.join(clauses)}
             GROUP BY event.id, primary_source.id
             ORDER BY event.last_seen_at DESC, event.importance_score DESC
-            LIMIT %s
+            LIMIT %s OFFSET %s
         """
         with self._database.connection() as connection:
             cursor = connection.cursor()

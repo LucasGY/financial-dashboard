@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -30,18 +30,43 @@ class EntityDynamicsService:
         search: Optional[str] = None,
         min_score: Optional[int] = None,
         entity: Optional[str] = None,
+        limit: int = 35,
+        cursor: Optional[str] = None,
     ) -> FeedResponse:
+        limit = max(1, min(100, limit))
         if channel in {"ai", "finance"}:
+            page = _parse_feed_cursor(cursor)
+            cutoff = page.cutoff or (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=2))
+            fetch_limit = limit + 1
             rows = self._intelligence_feed_repository.fetch_events(
                 domain=channel,
                 event_tag=None if filter_key == "all" else filter_key,
                 search=search,
                 min_score=min_score,
                 entity_id=entity if entity and entity != "all" else None,
+                limit=fetch_limit,
+                offset=page.offset,
+                since=cutoff if page.mode == "recent" else None,
+                before=cutoff if page.mode == "older" else None,
             )
-            return FeedResponse(items=[self._map_event_row(row, channel) for row in rows])
+            page_rows = rows[:limit]
+            has_more_in_bucket = len(rows) > limit
+            next_cursor = None
+            if has_more_in_bucket:
+                next_cursor = _build_feed_cursor(page.mode, cutoff, page.offset + limit)
+            elif page.mode == "recent":
+                next_cursor = _build_feed_cursor("older", cutoff, 0)
+            return FeedResponse(
+                items=[self._map_event_row(row, channel) for row in page_rows],
+                next_cursor=next_cursor,
+                has_more=bool(next_cursor),
+            )
         if channel == "deep_dive":
-            return FeedResponse(items=self._load_deep_dive(filter_key=filter_key, search=search))
+            offset = _parse_offset_cursor(cursor)
+            items = self._load_deep_dive(filter_key=filter_key, search=search)
+            page_items = items[offset : offset + limit]
+            next_cursor = str(offset + limit) if offset + limit < len(items) else None
+            return FeedResponse(items=page_items, next_cursor=next_cursor, has_more=bool(next_cursor))
         if channel == "daily":
             return FeedResponse(items=[])
         return FeedResponse(items=[])
@@ -256,3 +281,33 @@ def _event_with_primary_source(event: IntelligenceEventRow, sources: list[Intell
         related_discussion_count=event.related_discussion_count,
         primary_source=primary_source,
     )
+
+
+class _FeedCursor:
+    def __init__(self, mode: str, cutoff: Optional[datetime], offset: int) -> None:
+        self.mode = mode
+        self.cutoff = cutoff
+        self.offset = offset
+
+
+def _parse_feed_cursor(cursor: Optional[str]) -> _FeedCursor:
+    if not cursor:
+        return _FeedCursor("recent", None, 0)
+    try:
+        mode, cutoff_raw, offset_raw = cursor.split("|", 2)
+        if mode not in {"recent", "older"}:
+            return _FeedCursor("recent", None, 0)
+        return _FeedCursor(mode, datetime.fromisoformat(cutoff_raw), max(0, int(offset_raw)))
+    except (TypeError, ValueError):
+        return _FeedCursor("recent", None, 0)
+
+
+def _build_feed_cursor(mode: str, cutoff: datetime, offset: int) -> str:
+    return f"{mode}|{cutoff.isoformat(timespec='seconds')}|{offset}"
+
+
+def _parse_offset_cursor(cursor: Optional[str]) -> int:
+    try:
+        return max(0, int(cursor or 0))
+    except ValueError:
+        return 0

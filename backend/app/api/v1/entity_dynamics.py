@@ -19,9 +19,11 @@ def get_feed(
     search: Optional[str] = Query(default=None),
     min_score: Optional[int] = Query(default=None, ge=0, le=100),
     entity: Optional[str] = Query(default=None),
+    limit: int = Query(default=35, ge=1, le=100),
+    cursor: Optional[str] = Query(default=None),
     service: EntityDynamicsService = Depends(get_entity_dynamics_service),
 ) -> FeedResponse:
-    return service.get_feed(channel=channel, filter_key=filter, search=search, min_score=min_score, entity=entity)
+    return service.get_feed(channel=channel, filter_key=filter, search=search, min_score=min_score, entity=entity, limit=limit, cursor=cursor)
 
 
 @router.get("/sources/{slug}", response_model=SourceDetail)

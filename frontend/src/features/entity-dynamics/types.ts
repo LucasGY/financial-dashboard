@@ -7,6 +7,8 @@ export interface FeedQuery {
   entity?: string;
   search?: string;
   minScore?: number;
+  limit?: number;
+  cursor?: string | null;
 }
 
 export interface FeedItem {
@@ -44,6 +46,8 @@ export interface FeedItem {
 
 export interface FeedResponse {
   items: FeedItem[];
+  next_cursor: string | null;
+  has_more: boolean;
 }
 
 export interface IntelligenceSource {

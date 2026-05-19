@@ -71,6 +71,8 @@ class IntelligenceItem(BaseModel):
 
 class FeedResponse(BaseModel):
     items: list[IntelligenceItem]
+    next_cursor: Optional[str] = None
+    has_more: bool = False
 
 
 class SourceDetail(IntelligenceItem):
