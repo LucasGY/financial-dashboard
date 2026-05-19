@@ -65,6 +65,7 @@ class IntelligenceItem(BaseModel):
     importance_score: Optional[int] = None
     source_count: int = 1
     has_related_discussions: bool = False
+    is_favorited: bool = False
     source_url: Optional[str] = None
     status: str = "new"
 
@@ -78,3 +79,12 @@ class FeedResponse(BaseModel):
 class SourceDetail(IntelligenceItem):
     content: str
     sources: list[IntelligenceSource] = []
+
+
+class FavoriteRequest(BaseModel):
+    is_favorited: bool
+
+
+class FavoriteResponse(BaseModel):
+    slug: str
+    is_favorited: bool

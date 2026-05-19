@@ -1,5 +1,5 @@
-import { getJson } from "../../lib/api/client";
-import type { FeedQuery, FeedResponse, SourceDetail } from "./types";
+import { getJson, postJson } from "../../lib/api/client";
+import type { FavoriteResponse, FeedQuery, FeedResponse, SourceDetail } from "./types";
 
 export const getEntityFeed = ({ channel, filter = "all", entity = "all", search = "", minScore = 0, limit = 35, cursor = null }: FeedQuery) => {
   const params = new URLSearchParams({ channel, filter });
@@ -13,3 +13,8 @@ export const getEntityFeed = ({ channel, filter = "all", entity = "all", search 
 
 export const getSourceDetail = (slug: string) =>
   getJson<SourceDetail>(`/entity-dynamics/sources/${encodeURIComponent(slug)}`);
+
+export const setSourceFavorite = (slug: string, isFavorited: boolean) =>
+  postJson<FavoriteResponse, { is_favorited: boolean }>(`/entity-dynamics/sources/${encodeURIComponent(slug)}/favorite`, {
+    is_favorited: isFavorited,
+  });

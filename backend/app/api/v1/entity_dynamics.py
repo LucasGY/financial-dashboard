@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 import httpx
 
 from app.api.dependencies import get_entity_dynamics_service
-from app.schemas.entity_dynamics import FeedResponse, SourceDetail
+from app.schemas.entity_dynamics import FavoriteRequest, FavoriteResponse, FeedResponse, SourceDetail
 from app.services.entity_dynamics_service import EntityDynamicsService
 
 router = APIRouter()
@@ -35,6 +35,18 @@ def get_source_detail(
     if detail is None:
         raise HTTPException(status_code=404, detail="Source not found")
     return detail
+
+
+@router.post("/sources/{slug}/favorite", response_model=FavoriteResponse)
+def set_source_favorite(
+    slug: str,
+    request: FavoriteRequest,
+    service: EntityDynamicsService = Depends(get_entity_dynamics_service),
+) -> FavoriteResponse:
+    result = service.set_favorite(slug, request.is_favorited)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Source not found")
+    return result
 
 
 @router.get("/media/video")

@@ -1,8 +1,9 @@
-import { ExternalLink, Layers, Play, X } from "lucide-react";
+import { ExternalLink, Layers, Play, Star, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { labelForEvent, type Language } from "../labels";
 import { usePagedEntityFeed } from "../hooks";
+import { setSourceFavorite } from "../api";
 import type { Channel, FeedItem } from "../types";
 
 interface Props {
@@ -31,8 +32,9 @@ function formatTime(date: string) {
 }
 
 export function EntityFeed({ channel, filter, entity, search, minScore, language, onSelectItem, selectedSlug }: Props) {
-  const { data, isLoading, isLoadingMore, error, loadMore } = usePagedEntityFeed({ channel, filter, entity, search, minScore, limit: 35 });
+  const { data, isLoading, isLoadingMore, error, loadMore, updateItem, removeItem } = usePagedEntityFeed({ channel, filter, entity, search, minScore, limit: 35 });
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const autoLoadEnabledRef = useRef(true);
   const autoLoadScrollArmedRef = useRef(false);
@@ -94,6 +96,21 @@ export function EntityFeed({ channel, filter, entity, search, minScore, language
     loadMore();
   };
 
+  const handleToggleFavorite = async (item: FeedItem) => {
+    const nextValue = !item.is_favorited;
+    setFavoriteError(null);
+    updateItem(item.slug, (current) => ({ ...current, is_favorited: nextValue }));
+    try {
+      await setSourceFavorite(item.slug, nextValue);
+      if (filter === "favorite" && !nextValue) {
+        removeItem(item.slug);
+      }
+    } catch {
+      updateItem(item.slug, (current) => ({ ...current, is_favorited: !nextValue }));
+      setFavoriteError(language === "zh" ? "收藏失败，请稍后重试" : "Failed to update saved state");
+    }
+  };
+
   if (isLoading) {
     return <div className="py-16 text-center text-sm text-slate-400 dark:text-slate-500">{language === "zh" ? "加载中..." : "Loading..."}</div>;
   }
@@ -109,6 +126,7 @@ export function EntityFeed({ channel, filter, entity, search, minScore, language
   return (
     <>
       <div className="pb-8">
+        {favoriteError && <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200">{favoriteError}</div>}
         {dates.map((date) => (
           <section key={date} className="border-b border-slate-200 py-5 last:border-b-0 dark:border-slate-800">
             <div className="mb-3 text-xs font-semibold text-slate-400 dark:text-slate-500">{date}</div>
@@ -126,6 +144,7 @@ export function EntityFeed({ channel, filter, entity, search, minScore, language
                     language={language}
                     onClick={() => onSelectItem(item.slug)}
                     onOpenImage={setLightboxUrl}
+                    onToggleFavorite={() => handleToggleFavorite(item)}
                   />
                 </div>
               ))}
@@ -180,12 +199,14 @@ function FeedCard({
   language,
   onClick,
   onOpenImage,
+  onToggleFavorite,
 }: {
   item: FeedItem;
   isSelected: boolean;
   language: Language;
   onClick: () => void;
   onOpenImage: (url: string) => void;
+  onToggleFavorite: () => void;
 }) {
   const title = language === "zh" ? item.title_zh || item.title : item.title || item.title_zh;
   const rawCandidate = language === "zh" ? item.raw_excerpt_zh : item.raw_excerpt;
@@ -250,19 +271,37 @@ function FeedCard({
           </button>
           {item.source_url && <ExternalLink className="size-3" />}
         </div>
-        {item.importance_score !== null && (
-          <span
-            className={`shrink-0 rounded-md border px-2 py-1 text-xs font-bold leading-none ${
-              item.importance_score >= 80
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-200"
-                : item.importance_score >= 60
-                  ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/15 dark:text-amber-200"
-                  : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            aria-label={item.is_favorited ? (language === "zh" ? "取消收藏" : "Unsave") : language === "zh" ? "收藏" : "Save"}
+            title={item.is_favorited ? (language === "zh" ? "取消收藏" : "Unsave") : language === "zh" ? "收藏" : "Save"}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleFavorite();
+            }}
+            className={`grid size-7 place-items-center rounded-md border transition-colors ${
+              item.is_favorited
+                ? "border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-400/40 dark:bg-amber-400/15 dark:text-amber-200"
+                : "border-slate-200 bg-slate-50 text-slate-400 hover:text-amber-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500 dark:hover:text-amber-300"
             }`}
           >
-            {item.importance_score}
-          </span>
-        )}
+            <Star className={`size-3.5 ${item.is_favorited ? "fill-current" : ""}`} />
+          </button>
+          {item.importance_score !== null && (
+            <span
+              className={`rounded-md border px-2 py-1 text-xs font-bold leading-none ${
+                item.importance_score >= 80
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-200"
+                  : item.importance_score >= 60
+                    ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/15 dark:text-amber-200"
+                    : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+              }`}
+            >
+              {item.importance_score}
+            </span>
+          )}
+        </div>
       </div>
 
       <button

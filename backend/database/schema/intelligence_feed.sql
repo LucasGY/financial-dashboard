@@ -59,6 +59,16 @@ CREATE TABLE IF NOT EXISTS intelligence_event_source (
         ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS intelligence_event_favorite (
+    event_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_intelligence_favorite_event
+        FOREIGN KEY (event_id)
+        REFERENCES intelligence_event(id)
+        ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 ALTER TABLE intelligence_event_source
     ADD COLUMN IF NOT EXISTS title_en TEXT NULL AFTER title,
     ADD COLUMN IF NOT EXISTS title_zh TEXT NULL AFTER title,

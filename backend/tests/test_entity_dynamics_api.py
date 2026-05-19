@@ -6,6 +6,7 @@ class FakeEntityDynamicsService:
     def __init__(self):
         self.last_min_score = None
         self.last_entity = None
+        self.last_favorite = None
 
     def get_feed(self, channel="ai", filter_key="all", search=None, min_score=None, entity=None, limit=35, cursor=None):
         self.last_min_score = min_score
@@ -37,6 +38,7 @@ class FakeEntityDynamicsService:
                     importance_score=72,
                     source_count=2,
                     has_related_discussions=True,
+                    is_favorited=False,
                     source_url="https://x.com/example/status/1",
                     author_avatar_url="https://unavatar.io/x/example",
                     status="new",
@@ -98,6 +100,10 @@ class FakeEntityDynamicsService:
             ],
         )
 
+    def set_favorite(self, slug, is_favorited):
+        self.last_favorite = (slug, is_favorited)
+        return {"slug": slug, "is_favorited": is_favorited}
+
 
 def test_entity_dynamics_feed_contract(client):
     fake_service = FakeEntityDynamicsService()
@@ -131,3 +137,14 @@ def test_entity_dynamics_detail_contract(client):
     assert payload["sources"][0]["assets"][0]["url"] == "https://example.test/a.jpg"
     assert payload["sources"][0]["title_zh"] == "OpenAI 发布 Codex 更新"
     assert payload["sources"][0]["raw_content_zh"] == "原始来源文本"
+
+
+def test_entity_dynamics_favorite_contract(client):
+    fake_service = FakeEntityDynamicsService()
+    client.app.dependency_overrides[get_entity_dynamics_service] = lambda: fake_service
+
+    response = client.post("/api/v1/entity-dynamics/sources/event%3A1/favorite", json={"is_favorited": True})
+
+    assert response.status_code == 200
+    assert response.json() == {"slug": "event:1", "is_favorited": True}
+    assert fake_service.last_favorite == ("event:1", True)

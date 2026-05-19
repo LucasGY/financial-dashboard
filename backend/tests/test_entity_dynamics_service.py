@@ -8,8 +8,9 @@ class FakeRepository:
     def __init__(self):
         self.last_entity_id = None
 
-    def fetch_events(self, domain, event_tag, search, min_score=None, entity_id=None, limit=100, offset=0, since=None, before=None):
+    def fetch_events(self, domain, event_tag, search, min_score=None, entity_id=None, limit=100, offset=0, since=None, before=None, favorite_only=False):
         self.last_entity_id = entity_id
+        self.last_favorite_only = favorite_only
         return [
             IntelligenceEventRow(
                 id=1,
@@ -54,6 +55,15 @@ def test_finance_feed_passes_entity_filter_and_dedupes_entity_labels(tmp_path):
 
     assert repository.last_entity_id == "microsoft"
     assert response.items[0].entity_labels == ["MSFT"]
+
+
+def test_favorite_filter_passes_favorite_only(tmp_path):
+    repository = FakeRepository()
+    service = EntityDynamicsService(second_brain_path=str(tmp_path), intelligence_feed_repository=repository)
+
+    service.get_feed(channel="ai", filter_key="favorite")
+
+    assert repository.last_favorite_only is True
 
 
 def test_event_detail_uses_source_assets_when_fetch_event_has_no_primary_source(tmp_path):

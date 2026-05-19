@@ -40,6 +40,7 @@ export interface FeedItem {
   importance_score: number | null;
   source_count: number;
   has_related_discussions: boolean;
+  is_favorited: boolean;
   source_url: string | null;
   status: string;
 }
@@ -80,4 +81,9 @@ export interface IntelligenceSource {
 export interface SourceDetail extends FeedItem {
   content: string;
   sources: IntelligenceSource[];
+}
+
+export interface FavoriteResponse {
+  slug: string;
+  is_favorited: boolean;
 }

@@ -8,7 +8,7 @@ from typing import Optional
 import frontmatter
 from app.repositories.intelligence_feed_repository import IntelligenceFeedRepository
 from app.repositories.models import IntelligenceEventRow, IntelligenceSourceRow
-from app.schemas.entity_dynamics import FeedResponse, IntelligenceItem, IntelligenceSource, SourceDetail
+from app.schemas.entity_dynamics import FavoriteResponse, FeedResponse, IntelligenceItem, IntelligenceSource, SourceDetail
 from app.services.intelligence_taxonomy import entity_labels_for_channel, normalize_event_tags_for_domain
 
 
@@ -38,9 +38,10 @@ class EntityDynamicsService:
             page = _parse_feed_cursor(cursor)
             cutoff = page.cutoff or (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=2))
             fetch_limit = limit + 1
+            favorite_only = filter_key == "favorite"
             rows = self._intelligence_feed_repository.fetch_events(
                 domain=channel,
-                event_tag=None if filter_key == "all" else filter_key,
+                event_tag=None if filter_key in {"all", "favorite"} else filter_key,
                 search=search,
                 min_score=min_score,
                 entity_id=entity if entity and entity != "all" else None,
@@ -48,6 +49,7 @@ class EntityDynamicsService:
                 offset=page.offset,
                 since=cutoff if page.mode == "recent" else None,
                 before=cutoff if page.mode == "older" else None,
+                favorite_only=favorite_only,
             )
             page_rows = rows[:limit]
             has_more_in_bucket = len(rows) > limit
@@ -77,6 +79,18 @@ class EntityDynamicsService:
         if slug.startswith("deep:"):
             return self._get_deep_dive_detail(slug.removeprefix("deep:"))
         return None
+
+    def set_favorite(self, slug: str, is_favorited: bool) -> Optional[FavoriteResponse]:
+        try:
+            event_id = int(slug.removeprefix("event:"))
+        except ValueError:
+            return None
+        if not slug.startswith("event:"):
+            return None
+        updated = self._intelligence_feed_repository.set_event_favorite(event_id, is_favorited)
+        if not updated:
+            return None
+        return FavoriteResponse(slug=slug, is_favorited=is_favorited)
 
     def _get_event_detail(self, slug: str) -> Optional[SourceDetail]:
         try:
@@ -193,6 +207,7 @@ class EntityDynamicsService:
             importance_score=row.importance_score,
             source_count=row.source_count,
             has_related_discussions=row.related_discussion_count > 0,
+            is_favorited=row.is_favorited,
             source_url=primary.source_url if primary else None,
             status=row.status,
         )
@@ -279,6 +294,7 @@ def _event_with_primary_source(event: IntelligenceEventRow, sources: list[Intell
         status=event.status,
         source_count=event.source_count,
         related_discussion_count=event.related_discussion_count,
+        is_favorited=event.is_favorited,
         primary_source=primary_source,
     )
 

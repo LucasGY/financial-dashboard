@@ -101,4 +101,5 @@ class IntelligenceEventRow:
     status: str
     source_count: int
     related_discussion_count: int = 0
+    is_favorited: bool = False
     primary_source: Optional[IntelligenceSourceRow] = None

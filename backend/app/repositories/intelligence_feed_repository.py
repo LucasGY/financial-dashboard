@@ -24,7 +24,9 @@ class IntelligenceFeedRepository:
         offset: int = 0,
         since: Optional[datetime] = None,
         before: Optional[datetime] = None,
+        favorite_only: bool = False,
     ) -> list[IntelligenceEventRow]:
+        self._ensure_favorite_table()
         clauses = ["event.domain = %s"]
         params: list[object] = [domain]
         if event_tag and event_tag != "all":
@@ -46,11 +48,14 @@ class IntelligenceFeedRepository:
         if before is not None:
             clauses.append("event.last_seen_at < %s")
             params.append(before)
+        if favorite_only:
+            clauses.append("favorite.event_id IS NOT NULL")
         params.extend([limit, offset])
         sql = f"""
             SELECT event.*,
                    COUNT(source.id) AS source_count,
                    SUM(CASE WHEN source.source_role = 'related_discussion' THEN 1 ELSE 0 END) AS related_discussion_count,
+                   CASE WHEN favorite.event_id IS NULL THEN 0 ELSE 1 END AS is_favorited,
                    primary_source.id AS primary_source_id,
                    primary_source.event_id AS primary_source_event_id,
                    primary_source.external_id AS primary_source_external_id,
@@ -79,6 +84,7 @@ class IntelligenceFeedRepository:
                    primary_source.raw_content_en AS primary_source_raw_content_en,
                    primary_source.raw_content_zh AS primary_source_raw_content_zh
             FROM intelligence_event event
+            LEFT JOIN intelligence_event_favorite favorite ON favorite.event_id = event.id
             LEFT JOIN intelligence_event_source source ON source.event_id = event.id
             LEFT JOIN intelligence_event_source primary_source ON primary_source.id = (
                 SELECT inner_source.id
@@ -106,11 +112,14 @@ class IntelligenceFeedRepository:
     def fetch_events_by_ids(self, event_ids: list[int]) -> list[IntelligenceEventRow]:
         if not event_ids:
             return []
+        self._ensure_favorite_table()
         placeholders = ", ".join(["%s"] * len(event_ids))
         sql = f"""
             SELECT event.*, COUNT(source.id) AS source_count
-                   , SUM(CASE WHEN source.source_role = 'related_discussion' THEN 1 ELSE 0 END) AS related_discussion_count
+                   , SUM(CASE WHEN source.source_role = 'related_discussion' THEN 1 ELSE 0 END) AS related_discussion_count,
+                   CASE WHEN favorite.event_id IS NULL THEN 0 ELSE 1 END AS is_favorited
             FROM intelligence_event event
+            LEFT JOIN intelligence_event_favorite favorite ON favorite.event_id = event.id
             LEFT JOIN intelligence_event_source source ON source.event_id = event.id
             WHERE event.id IN ({placeholders})
             GROUP BY event.id
@@ -131,6 +140,26 @@ class IntelligenceFeedRepository:
             cursor = connection.cursor()
             cursor.execute(sql, [event_id])
             return [self._map_source_row(row) for row in cursor.fetchall()]
+
+    def set_event_favorite(self, event_id: int, is_favorited: bool) -> bool:
+        self._ensure_favorite_table()
+        with self._database.connection() as connection:
+            cursor = connection.cursor()
+            cursor.execute("SELECT id FROM intelligence_event WHERE id = %s", [event_id])
+            if cursor.fetchone() is None:
+                return False
+            if is_favorited:
+                cursor.execute(
+                    """
+                    INSERT INTO intelligence_event_favorite (event_id)
+                    VALUES (%s)
+                    ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP
+                    """,
+                    [event_id],
+                )
+            else:
+                cursor.execute("DELETE FROM intelligence_event_favorite WHERE event_id = %s", [event_id])
+        return True
 
     def fetch_sources_missing_translations(self, *, limit: int = 50) -> list[IntelligenceSourceRow]:
         sql = """
@@ -339,7 +368,24 @@ class IntelligenceFeedRepository:
             source_count=int(row.get("source_count") or 0),
             related_discussion_count=int(row.get("related_discussion_count") or 0),
             primary_source=primary_source,
+            is_favorited=bool(row.get("is_favorited")),
         )
+
+    def _ensure_favorite_table(self) -> None:
+        sql = """
+            CREATE TABLE IF NOT EXISTS intelligence_event_favorite (
+                event_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                CONSTRAINT fk_intelligence_favorite_event
+                    FOREIGN KEY (event_id)
+                    REFERENCES intelligence_event(id)
+                    ON DELETE CASCADE
+            ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+        """
+        with self._database.connection() as connection:
+            cursor = connection.cursor()
+            cursor.execute(sql)
 
     @staticmethod
     def _map_source_row(row: dict) -> IntelligenceSourceRow:

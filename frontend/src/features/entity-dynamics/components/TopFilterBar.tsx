@@ -7,6 +7,7 @@ const FILTERS: Record<Channel, { id: string; label: Record<Language, string> }[]
   daily: [{ id: "all", label: { zh: "全部", en: "All" } }],
   ai: [
     { id: "all", label: { zh: "全部", en: "All" } },
+    { id: "favorite", label: { zh: "已收藏", en: "Saved" } },
     { id: "model_release", label: { zh: labelForEvent("model_release", "zh"), en: labelForEvent("model_release", "en") } },
     { id: "product_tool_update", label: { zh: labelForEvent("product_tool_update", "zh"), en: labelForEvent("product_tool_update", "en") } },
     { id: "industry", label: { zh: labelForEvent("industry", "zh"), en: labelForEvent("industry", "en") } },
@@ -77,6 +78,17 @@ export function TopFilterBar({
         <div className="flex flex-wrap gap-2">
           {channel === "finance" ? (
             <>
+              <button
+                type="button"
+                onClick={() => onFilterChange(activeFilter === "favorite" ? "all" : "favorite")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  activeFilter === "favorite"
+                    ? "bg-slate-900 text-white dark:bg-amber-400 dark:text-slate-950"
+                    : "bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white"
+                }`}
+              >
+                {language === "zh" ? "已收藏" : "Saved"}
+              </button>
               {FINANCE_PRIMARY_ENTITIES.map((entity) => (
                 <button
                   key={entity.id}

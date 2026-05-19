@@ -73,7 +73,15 @@ export function usePagedEntityFeed(query: FeedQuery) {
       });
   }, [nextCursor, query]);
 
-  return { data: { items, next_cursor: nextCursor, has_more: hasMore }, isLoading, isLoadingMore, error, loadMore };
+  const updateItem = useCallback((slug: string, updater: (item: FeedItem) => FeedItem) => {
+    setItems((current) => current.map((item) => (item.slug === slug ? updater(item) : item)));
+  }, []);
+
+  const removeItem = useCallback((slug: string) => {
+    setItems((current) => current.filter((item) => item.slug !== slug));
+  }, []);
+
+  return { data: { items, next_cursor: nextCursor, has_more: hasMore }, isLoading, isLoadingMore, error, loadMore, updateItem, removeItem };
 }
 
 export function useSourceDetail(slug: string | null) {
