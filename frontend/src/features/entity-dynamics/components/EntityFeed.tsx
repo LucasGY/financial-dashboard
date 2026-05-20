@@ -4,6 +4,7 @@ import type React from "react";
 import { labelForEvent, type Language } from "../labels";
 import { usePagedEntityFeed } from "../hooks";
 import { setSourceFavorite } from "../api";
+import { formatShanghaiDate, formatShanghaiTime } from "../date";
 import type { Channel, FeedItem } from "../types";
 
 interface Props {
@@ -19,16 +20,11 @@ interface Props {
 
 function groupByDate(items: FeedItem[]) {
   return items.reduce<Record<string, FeedItem[]>>((groups, item) => {
-    const date = item.source_date.slice(0, 10) || "Unknown";
+    const date = formatShanghaiDate(item.source_date);
     groups[date] = groups[date] ?? [];
     groups[date].push(item);
     return groups;
   }, {});
-}
-
-function formatTime(date: string) {
-  const time = date.slice(11, 16);
-  return time || date;
 }
 
 export function EntityFeed({ channel, filter, entity, search, minScore, language, onSelectItem, selectedSlug }: Props) {
@@ -133,7 +129,7 @@ export function EntityFeed({ channel, filter, entity, search, minScore, language
             <div className="space-y-2">
               {groupedItems[date].map((item) => (
                 <div key={item.id} className="grid gap-3 md:grid-cols-[64px_22px_minmax(0,1fr)]">
-                  <div className="pt-4 text-xs font-mono text-slate-400 dark:text-slate-500">{formatTime(item.source_date)}</div>
+                  <div className="pt-4 text-xs font-mono text-slate-400 dark:text-slate-500">{formatShanghaiTime(item.source_date)}</div>
                   <div className="relative hidden md:block">
                     <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-slate-200 dark:bg-slate-800" />
                     <div className="absolute left-1/2 top-5 size-2.5 -translate-x-1/2 rounded-full border-2 border-white bg-slate-400 dark:border-slate-950 dark:bg-amber-400" />

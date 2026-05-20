@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { labelForEvent, type Language } from "../labels";
 import { useSourceDetail } from "../hooks";
+import { formatShanghaiDateTime } from "../date";
 import type { IntelligenceSource, SourceDetail } from "../types";
 
 function preprocessMarkdown(content: string): string {
@@ -116,7 +117,7 @@ function DetailContent({ detail, language, onOpenImage }: { detail: SourceDetail
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 dark:text-slate-500">
         <span className="inline-flex items-center gap-1 font-mono">
           <Calendar className="size-3.5" />
-          {detail.source_date}
+          {formatShanghaiDateTime(detail.source_date)}
         </span>
         {detail.source_platform && <span>{detail.source_platform}</span>}
         {detail.source_type && <span>{detail.source_type}</span>}
@@ -226,7 +227,7 @@ function SourceCard({
             {source.author_name}
           </span>
         )}
-        <span className="font-mono">{source.source_date}</span>
+        <span className="font-mono">{formatShanghaiDateTime(source.source_date)}</span>
         {source.source_url && (
           <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-500 hover:underline dark:text-amber-300">
             {language === "zh" ? "打开" : "Open"}
