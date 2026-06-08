@@ -66,6 +66,40 @@ def test_favorite_filter_passes_favorite_only(tmp_path):
     assert repository.last_favorite_only is True
 
 
+def test_favorite_feed_includes_saved_events_outside_recent_bucket(tmp_path):
+    class FavoriteRepository:
+        def fetch_events(self, domain, event_tag, search, min_score=None, entity_id=None, limit=100, offset=0, since=None, before=None, favorite_only=False):
+            if since is not None or before is not None or not favorite_only:
+                return []
+            return [
+                IntelligenceEventRow(
+                    id=1,
+                    event_key="ai:openai:product_tool_update:codex",
+                    domain=domain,
+                    title="OpenAI updates Codex",
+                    title_zh="OpenAI 更新 Codex",
+                    summary="OpenAI updates Codex.",
+                    tldr_zh="OpenAI 更新 Codex。",
+                    first_seen_at=datetime(2026, 5, 15, 9, 0),
+                    last_seen_at=datetime(2026, 5, 15, 9, 30),
+                    entity_ids=["openai"],
+                    event_tags=["product_tool_update"],
+                    topic_tags=[],
+                    importance_score=80,
+                    status="new",
+                    source_count=1,
+                    is_favorited=True,
+                )
+            ]
+
+    service = EntityDynamicsService(second_brain_path=str(tmp_path), intelligence_feed_repository=FavoriteRepository())
+
+    response = service.get_feed(channel="ai", filter_key="favorite")
+
+    assert [item.slug for item in response.items] == ["event:1"]
+    assert response.has_more is False
+
+
 def test_event_detail_uses_source_assets_when_fetch_event_has_no_primary_source(tmp_path):
     class DetailRepository:
         def fetch_event(self, event_id):
