@@ -204,15 +204,7 @@ function FeedCard({
   onOpenImage: (url: string) => void;
   onToggleFavorite: () => void;
 }) {
-  const title = language === "zh" ? item.title_zh || item.title : item.title || item.title_zh;
-  const rawCandidate = language === "zh" ? item.raw_excerpt_zh : item.raw_excerpt;
-  const summaryCandidate =
-    item.display_mode === "raw" && rawCandidate
-      ? rawCandidate
-      : language === "zh"
-        ? item.tldr_zh || item.summary || item.tldr_en
-        : item.summary || item.tldr_en || item.tldr_zh;
-  const summary = summaryCandidate.trim().toLowerCase() === title.trim().toLowerCase() ? "" : summaryCandidate;
+  const copy = getCardCopy(item, language);
   const platformLabel = item.source_platform;
   const showAuthorAvatar = item.source_platform === "X" && item.author_name;
   const shouldOpenOriginal = item.source_count === 1 && !item.has_related_discussions && item.source_role === "primary" && Boolean(item.source_url);
@@ -309,11 +301,21 @@ function FeedCard({
         className="mt-2 block w-full text-left"
       >
         <h3 className={`text-[15px] font-bold leading-snug ${isSelected ? "" : "text-slate-900 dark:text-slate-100"}`}>
-          {title}
+          {copy.title.primary}
         </h3>
-        {summary && (
+        {copy.title.secondary && (
+          <div className={`mt-1 text-[13px] font-medium leading-5 ${isSelected ? "text-slate-300 dark:text-slate-400" : "text-slate-400 dark:text-slate-500"}`}>
+            {copy.title.secondary}
+          </div>
+        )}
+        {copy.summary.primary && (
           <p className={`mt-1 line-clamp-2 text-[13px] leading-6 ${isSelected ? "text-slate-200 dark:text-slate-300" : "text-slate-600 dark:text-slate-400"}`}>
-            {summary}
+            {copy.summary.primary}
+          </p>
+        )}
+        {copy.summary.secondary && (
+          <p className={`mt-1 line-clamp-2 text-[12px] leading-5 ${isSelected ? "text-slate-300 dark:text-slate-400" : "text-slate-400 dark:text-slate-500"}`}>
+            {copy.summary.secondary}
           </p>
         )}
       </button>
@@ -354,6 +356,55 @@ function FeedCard({
       </div>
     </article>
   );
+}
+
+function getCardCopy(item: FeedItem, language: Language) {
+  const title = chooseLocalizedPair(
+    language,
+    item.title_zh,
+    item.title
+  );
+  const summary = chooseLocalizedPair(
+    language,
+    getSummaryCandidate(item, "zh"),
+    getSummaryCandidate(item, "en")
+  );
+
+  return {
+    title,
+    summary: {
+      primary: withoutDuplicate(summary.primary, title.primary),
+      secondary: withoutDuplicate(summary.secondary, title.primary, summary.primary),
+    },
+  };
+}
+
+function getSummaryCandidate(item: FeedItem, language: Language) {
+  const rawCandidate = language === "zh" ? item.raw_excerpt_zh : item.raw_excerpt;
+  if (item.display_mode === "raw" && rawCandidate) {
+    return rawCandidate;
+  }
+  return language === "zh" ? item.tldr_zh : item.summary || item.tldr_en;
+}
+
+function chooseLocalizedPair(language: Language, zhValue: string, enValue: string) {
+  const zh = normalizeCopy(zhValue);
+  const en = normalizeCopy(enValue);
+  const primary = language === "zh" ? zh || en : en || zh;
+  const secondary = language === "zh" ? withoutDuplicate(en, primary) : withoutDuplicate(zh, primary);
+  return { primary, secondary };
+}
+
+function normalizeCopy(value: string | null | undefined) {
+  return value?.trim() ?? "";
+}
+
+function withoutDuplicate(value: string, ...comparisons: string[]) {
+  const normalizedValue = value.trim().toLowerCase();
+  if (!normalizedValue) {
+    return "";
+  }
+  return comparisons.some((comparison) => comparison.trim().toLowerCase() === normalizedValue) ? "" : value;
 }
 
 function AuthorAvatar({ authorName, avatarUrl }: { authorName: string | null; avatarUrl: string | null }) {
