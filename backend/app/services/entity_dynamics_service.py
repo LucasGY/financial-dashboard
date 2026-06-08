@@ -39,6 +39,7 @@ class EntityDynamicsService:
             cutoff = page.cutoff or (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=2))
             fetch_limit = limit + 1
             favorite_only = filter_key == "favorite"
+            bucket_by_recent_cutoff = not favorite_only
             rows = self._intelligence_feed_repository.fetch_events(
                 domain=channel,
                 event_tag=None if filter_key in {"all", "favorite"} else filter_key,
@@ -47,8 +48,8 @@ class EntityDynamicsService:
                 entity_id=entity if entity and entity != "all" else None,
                 limit=fetch_limit,
                 offset=page.offset,
-                since=cutoff if page.mode == "recent" else None,
-                before=cutoff if page.mode == "older" else None,
+                since=cutoff if bucket_by_recent_cutoff and page.mode == "recent" else None,
+                before=cutoff if bucket_by_recent_cutoff and page.mode == "older" else None,
                 favorite_only=favorite_only,
             )
             page_rows = rows[:limit]
@@ -56,7 +57,7 @@ class EntityDynamicsService:
             next_cursor = None
             if has_more_in_bucket:
                 next_cursor = _build_feed_cursor(page.mode, cutoff, page.offset + limit)
-            elif page.mode == "recent":
+            elif bucket_by_recent_cutoff and page.mode == "recent":
                 next_cursor = _build_feed_cursor("older", cutoff, 0)
             return FeedResponse(
                 items=[self._map_event_row(row, channel) for row in page_rows],
