@@ -1,4 +1,4 @@
-import { Activity, BarChart2, BrainCircuit, LineChart, Radio, TrendingUp } from "lucide-react";
+import { Activity, BarChart2, BrainCircuit, Calculator, LineChart, Radio, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../app/language";
 import { AsyncState } from "../../components/ui/AsyncState";
@@ -11,6 +11,7 @@ import { useSentimentData } from "../../features/sentiment/hooks";
 import { RegimeStatsPanel } from "../../features/market-regime/components/RegimeStatsPanel";
 import { ValuationCard } from "../../features/valuation/components/ValuationCard";
 import { PriceAttributionCard } from "../../features/valuation/components/PriceAttributionCard";
+import { DrawdownScenarioCard } from "../../features/valuation/components/DrawdownScenarioCard";
 
 export function DashboardPage() {
   const { isZh } = useLanguage();
@@ -110,7 +111,22 @@ export function DashboardPage() {
 
         <section className="space-y-5">
           <SectionTitle
-            title={isZh ? "3. 当前状态回测" : "3. Current Regime Backtest"}
+            title={isZh ? "3. 回撤点位计算" : "3. Drawdown Level Calculator"}
+            subtitle={
+              isZh
+                ? "按 SPY / QQQ 距离历史高点的回撤档位，测算对应点位、隐含 PE 与历史估值分位。"
+                : "Maps SPY / QQQ drawdown levels from historical highs to price levels, implied PE, and valuation percentiles."
+            }
+            icon={Calculator}
+            iconClassName="text-amber-600"
+          />
+
+          <DrawdownScenarioCard />
+        </section>
+
+        <section className="space-y-5">
+          <SectionTitle
+            title={isZh ? "4. 当前状态回测" : "4. Current Regime Backtest"}
             subtitle={
               isZh
                 ? "按最新收盘日的恐贪、VIX、50D 市场宽度和 NTM PE 分位向量寻找历史近邻，统计收盘买入后的远期表现。"
@@ -125,7 +141,7 @@ export function DashboardPage() {
 
         <section className="space-y-5">
           <SectionTitle
-            title="4. Strategy Lab"
+            title="5. Strategy Lab"
             subtitle={
               isZh
                 ? "用自然语言描述策略，实时生成受控规则与代码，并输出未来窗口的胜率和回报统计。"

@@ -44,3 +44,32 @@ export type PriceAttributionResponse = {
   as_of_date: string | null;
   series: PriceAttributionPoint[];
 };
+
+export type DrawdownScenarioPoint = {
+  drawdown_pct: number;
+  price_level: number | null;
+  implied_pe: number | null;
+  percentile_1y: number | null;
+  percentile_5y: number | null;
+  percentile_10y: number | null;
+  is_current_drawdown_row: boolean;
+  is_key_drawdown: boolean;
+  is_cheap: boolean;
+};
+
+export type DrawdownScenarioTable = {
+  ticker: "SPY" | "QQQ";
+  index_code: "SPX" | "NDX";
+  display_name: string;
+  as_of_date: string | null;
+  current_price: number | null;
+  high_price: number | null;
+  current_drawdown_pct: number | null;
+  current_pe: number | null;
+  scenarios: DrawdownScenarioPoint[];
+};
+
+export type DrawdownScenariosResponse = {
+  spy: DrawdownScenarioTable | null;
+  qqq: DrawdownScenarioTable | null;
+};

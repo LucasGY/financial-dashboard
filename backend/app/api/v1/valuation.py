@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends
 
 from app.api.dependencies import get_valuation_service
-from app.schemas.valuation import PriceAttributionResponse, ValuationOverviewResponse, ValuationTimelineResponse
+from app.schemas.valuation import DrawdownScenariosResponse, PriceAttributionResponse, ValuationOverviewResponse, ValuationTimelineResponse
 from app.services.valuation_service import ValuationService
 
 router = APIRouter()
@@ -30,3 +30,8 @@ def get_price_attribution(
     service: ValuationService = Depends(get_valuation_service),
 ) -> PriceAttributionResponse:
     return service.get_price_attribution(index, tag)
+
+
+@router.get("/drawdown-scenarios", response_model=DrawdownScenariosResponse)
+def get_drawdown_scenarios(service: ValuationService = Depends(get_valuation_service)) -> DrawdownScenariosResponse:
+    return service.get_drawdown_scenarios()

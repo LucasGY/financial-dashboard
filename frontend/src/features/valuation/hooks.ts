@@ -1,6 +1,6 @@
 import { startTransition, useEffect, useState } from "react";
-import { getPriceAttribution, getValuationTimeline } from "./api";
-import type { AttributionTag, PriceAttributionResponse, ValuationTimelineResponse, ValuationWindow } from "./types";
+import { getDrawdownScenarios, getPriceAttribution, getValuationTimeline } from "./api";
+import type { AttributionTag, DrawdownScenariosResponse, PriceAttributionResponse, ValuationTimelineResponse, ValuationWindow } from "./types";
 
 type ValuationState = {
   data: ValuationTimelineResponse | null;
@@ -110,6 +110,62 @@ export function usePriceAttribution(index: "SPX" | "NDX", tag: AttributionTag) {
       active = false;
     };
   }, [index, tag]);
+
+  return state;
+}
+
+type DrawdownState = {
+  data: DrawdownScenariosResponse | null;
+  error: Error | null;
+  isLoading: boolean;
+};
+
+export function useDrawdownScenarios() {
+  const [state, setState] = useState<DrawdownState>({
+    data: null,
+    error: null,
+    isLoading: true
+  });
+
+  useEffect(() => {
+    let active = true;
+
+    startTransition(() => {
+      setState((current) => ({
+        data: current.data,
+        error: null,
+        isLoading: true
+      }));
+    });
+
+    getDrawdownScenarios()
+      .then((data) => {
+        if (!active) {
+          return;
+        }
+
+        setState({
+          data,
+          error: null,
+          isLoading: false
+        });
+      })
+      .catch((error: Error) => {
+        if (!active) {
+          return;
+        }
+
+        setState({
+          data: null,
+          error,
+          isLoading: false
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return state;
 }

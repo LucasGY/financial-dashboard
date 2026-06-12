@@ -1,5 +1,5 @@
 import { getJson } from "../../lib/api/client";
-import type { AttributionTag, PriceAttributionResponse, ValuationTimelineResponse, ValuationWindow } from "./types";
+import type { AttributionTag, DrawdownScenariosResponse, PriceAttributionResponse, ValuationTimelineResponse, ValuationWindow } from "./types";
 
 export const getValuationTimeline = (index: "SPX" | "NDX", window: ValuationWindow) =>
   getJson<ValuationTimelineResponse>("/valuation/timeline", {
@@ -12,3 +12,5 @@ export const getPriceAttribution = (index: "SPX" | "NDX", tag: AttributionTag) =
     index,
     tag
   });
+
+export const getDrawdownScenarios = () => getJson<DrawdownScenariosResponse>("/valuation/drawdown-scenarios");

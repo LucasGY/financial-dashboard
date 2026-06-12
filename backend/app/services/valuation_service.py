@@ -12,6 +12,9 @@ from app.repositories.models import PriceRow, ValuationRow
 from app.repositories.price_repository import PriceRepository
 from app.schemas.common import TimeSeriesPoint
 from app.schemas.valuation import (
+    DrawdownScenarioPoint,
+    DrawdownScenariosResponse,
+    DrawdownScenarioTable,
     PriceAttributionPoint,
     PriceAttributionResponse,
     ValuationOverviewItem,
@@ -31,6 +34,9 @@ INDEX_PRICE_TICKERS = {
     "SPX": "SPY",
     "NDX": "QQQ",
 }
+
+DRAWDOWN_LEVELS = tuple(range(0, -31, -2)) + (-5, -15)
+KEY_DRAWDOWNS = {-5, -10, -15}
 
 
 class ValuationService:
@@ -98,6 +104,12 @@ class ValuationService:
             series=points,
         )
 
+    def get_drawdown_scenarios(self) -> DrawdownScenariosResponse:
+        return DrawdownScenariosResponse(
+            spy=self._build_drawdown_table(index_code="SPX", ticker="SPY"),
+            qqq=self._build_drawdown_table(index_code="NDX", ticker="QQQ"),
+        )
+
     def _build_overview_item(self, index_code: str) -> Optional[ValuationOverviewItem]:
         timeline_10y = self._fetch_rows(index_code=index_code, window="10y")
         if not timeline_10y:
@@ -122,6 +134,76 @@ class ValuationService:
         current = rows[-1].pe_ntm
         values = [row.pe_ntm for row in rows if row.pe_ntm is not None]
         return self._compute_percentile(current, values)
+
+    def _build_drawdown_table(self, index_code: str, ticker: str) -> Optional[DrawdownScenarioTable]:
+        valuation_rows = self._fetch_rows(index_code=index_code, window="10y")
+        current_valuation = next((row for row in reversed(valuation_rows) if row.pe_ntm is not None and row.pe_ntm > 0), None)
+        price_rows = self._price_repository.fetch_series(tickers=[ticker], start_date=date.today() - timedelta(days=365 * 20), end_date=date.today())
+        ticker_prices = [row for row in price_rows if row.ticker == ticker and row.adj_close_price > 0]
+
+        if current_valuation is None or not ticker_prices:
+            return None
+
+        current_price = ticker_prices[-1].adj_close_price
+        high_price = max(row.adj_close_price for row in ticker_prices)
+        current_drawdown_pct = self._drawdown_pct(current_price, high_price)
+        levels = sorted({float(level) for level in DRAWDOWN_LEVELS} | {current_drawdown_pct}, reverse=True)
+        current_pe = current_valuation.pe_ntm
+        percentile_values = {
+            window: [row.pe_ntm for row in self._fetch_rows(index_code=index_code, window=window) if row.pe_ntm is not None]
+            for window in WINDOW_DAYS
+        }
+        scenarios = [
+            self._build_drawdown_point(
+                drawdown_pct=level,
+                high_price=high_price,
+                current_price=current_price,
+                current_pe=current_pe,
+                current_drawdown_pct=current_drawdown_pct,
+                percentile_values=percentile_values,
+            )
+            for level in levels
+        ]
+
+        return DrawdownScenarioTable(
+            ticker=ticker,
+            index_code=index_code,
+            display_name=get_display_name(index_code),
+            as_of_date=max(ticker_prices[-1].trade_date, current_valuation.trade_date),
+            current_price=self._round_decimal(current_price),
+            high_price=self._round_decimal(high_price),
+            current_drawdown_pct=current_drawdown_pct,
+            current_pe=self._round_decimal(current_pe),
+            scenarios=scenarios,
+        )
+
+    def _build_drawdown_point(
+        self,
+        drawdown_pct: float,
+        high_price: Decimal,
+        current_price: Decimal,
+        current_pe: Decimal,
+        current_drawdown_pct: float,
+        percentile_values: dict[str, list[Decimal]],
+    ) -> DrawdownScenarioPoint:
+        price_level = high_price * (Decimal("1") + (Decimal(str(drawdown_pct)) / Decimal("100")))
+        implied_pe = current_pe * price_level / current_price
+        is_current = drawdown_pct == current_drawdown_pct
+        percentile_1y = self._compute_percentile(implied_pe, percentile_values["1y"])
+        percentile_5y = self._compute_percentile(implied_pe, percentile_values["5y"])
+        percentile_10y = self._compute_percentile(implied_pe, percentile_values["10y"])
+
+        return DrawdownScenarioPoint(
+            drawdown_pct=drawdown_pct,
+            price_level=self._round_decimal(price_level),
+            implied_pe=self._round_decimal(implied_pe),
+            percentile_1y=percentile_1y,
+            percentile_5y=percentile_5y,
+            percentile_10y=percentile_10y,
+            is_current_drawdown_row=is_current,
+            is_key_drawdown=drawdown_pct in KEY_DRAWDOWNS,
+            is_cheap=(percentile_5y is not None and percentile_5y < 20) or (percentile_10y is not None and percentile_10y < 20),
+        )
 
     def _fetch_rows(self, index_code: str, window: str) -> list[ValuationRow]:
         aliases = get_index_aliases(index_code)
@@ -216,3 +298,9 @@ class ValuationService:
     @staticmethod
     def _round_proxy_return(value: Optional[Decimal]) -> Optional[float]:
         return round(float(value), 8) if value is not None else None
+
+    @staticmethod
+    def _drawdown_pct(current_price: Decimal, high_price: Decimal) -> float:
+        if high_price <= 0:
+            return 0.0
+        return round(float((current_price / high_price - Decimal("1")) * Decimal("100")), 2)

@@ -61,3 +61,32 @@ class PriceAttributionResponse(APIModel):
     tag: str
     as_of_date: Optional[date]
     series: list[PriceAttributionPoint]
+
+
+class DrawdownScenarioPoint(APIModel):
+    drawdown_pct: float
+    price_level: Optional[float]
+    implied_pe: Optional[float]
+    percentile_1y: Optional[float]
+    percentile_5y: Optional[float]
+    percentile_10y: Optional[float]
+    is_current_drawdown_row: bool
+    is_key_drawdown: bool
+    is_cheap: bool
+
+
+class DrawdownScenarioTable(APIModel):
+    ticker: str
+    index_code: str
+    display_name: str
+    as_of_date: Optional[date]
+    current_price: Optional[float]
+    high_price: Optional[float]
+    current_drawdown_pct: Optional[float]
+    current_pe: Optional[float]
+    scenarios: list[DrawdownScenarioPoint]
+
+
+class DrawdownScenariosResponse(APIModel):
+    spy: Optional[DrawdownScenarioTable]
+    qqq: Optional[DrawdownScenarioTable]

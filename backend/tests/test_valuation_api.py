@@ -78,3 +78,29 @@ def test_price_attribution_returns_not_found_for_missing_index(client):
             "message": "no price attribution data found for index=NDX tag=month",
         }
     }
+
+
+def test_drawdown_scenarios_contract(client):
+    response = client.get("/api/v1/valuation/drawdown-scenarios")
+
+    assert response.status_code == 200
+    payload = response.json()
+    spy = payload["spy"]
+    current_row = next(item for item in spy["scenarios"] if item["is_current_drawdown_row"])
+    key_rows = {item["drawdown_pct"] for item in spy["scenarios"] if item["is_key_drawdown"]}
+    cheap_rows = [item for item in spy["scenarios"] if item["is_cheap"]]
+
+    assert spy["ticker"] == "SPY"
+    assert spy["index_code"] == "SPX"
+    assert spy["current_price"] == 108.64
+    assert spy["high_price"] == 112.0
+    assert spy["current_drawdown_pct"] == -3.0
+    assert current_row["drawdown_pct"] == -3.0
+    assert current_row["price_level"] == 108.64
+    assert current_row["implied_pe"] == 22.4
+    assert current_row["percentile_1y"] == 100.0
+    assert [item["drawdown_pct"] for item in spy["scenarios"][1:4]] == [-2, -3.0, -4]
+    assert key_rows == {-5, -10, -15}
+    assert cheap_rows[-1]["drawdown_pct"] == -30
+    assert cheap_rows[-1]["percentile_5y"] < 20
+    assert payload["qqq"] is None
