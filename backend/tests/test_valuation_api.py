@@ -7,6 +7,14 @@ def test_valuation_timeline_contract_and_precision(client):
     assert payload["display_name"] == "S&P 500"
     assert payload["current_value"] == 22.4
     assert payload["percentile"] == 100.0
+    assert payload["estimated_date"] == "2026-04-08"
+    assert payload["estimate_method"] == "proxy_adjusted"
+    assert payload["valuation_source"] == "proxy_adjusted"
+    assert payload["is_estimated"] is True
+    assert payload["raw_pe_ntm"] == 22.0
+    assert payload["based_on_trade_date"] == "2026-04-07"
+    assert payload["proxy_ticker"] == "SP500"
+    assert payload["proxy_return"] == 0.01818182
     assert payload["series"][1]["value"] is None
 
 

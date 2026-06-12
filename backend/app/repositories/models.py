@@ -33,6 +33,12 @@ class ValuationRow:
     trade_date: date
     index_name: str
     pe_ntm: Optional[Decimal]
+    valuation_source: str = "facset"
+    is_estimated: bool = False
+    raw_pe_ntm: Optional[Decimal] = None
+    based_on_trade_date: Optional[date] = None
+    proxy_ticker: Optional[str] = None
+    proxy_return: Optional[Decimal] = None
 
 
 @dataclass(frozen=True)

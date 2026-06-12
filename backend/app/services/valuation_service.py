@@ -51,6 +51,14 @@ class ValuationService:
             display_name=get_display_name(index_code),
             window=window,
             as_of_date=current.trade_date,
+            estimated_date=current.trade_date if current.is_estimated else None,
+            estimate_method=current.valuation_source,
+            valuation_source=current.valuation_source,
+            is_estimated=bool(current.is_estimated),
+            raw_pe_ntm=quantize_optional(current.raw_pe_ntm, 4),
+            based_on_trade_date=current.based_on_trade_date,
+            proxy_ticker=current.proxy_ticker,
+            proxy_return=self._round_proxy_return(current.proxy_return),
             current_value=quantize_optional(current.pe_ntm, 4),
             percentile=self._compute_percentile(current.pe_ntm, values),
             series=[
@@ -204,3 +212,7 @@ class ValuationService:
     @staticmethod
     def _round_decimal(value: Decimal) -> float:
         return round(float(value), 4)
+
+    @staticmethod
+    def _round_proxy_return(value: Optional[Decimal]) -> Optional[float]:
+        return round(float(value), 8) if value is not None else None

@@ -9,7 +9,16 @@ class IndexValuationRepository(BaseRepository):
         placeholders = ", ".join(["%s"] * len(aliases))
         rows = self._fetch_all(
             f"""
-            SELECT trade_date, index_name, pe_ntm
+            SELECT
+                trade_date,
+                index_name,
+                pe_ntm,
+                valuation_source,
+                is_estimated,
+                raw_pe_ntm,
+                based_on_trade_date,
+                proxy_ticker,
+                proxy_return
             FROM index_valuation
             WHERE index_name IN ({placeholders})
               AND trade_date >= %s

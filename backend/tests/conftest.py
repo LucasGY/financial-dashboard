@@ -109,7 +109,17 @@ class FakeIndexValuationRepository:
                 ValuationRow(trade_date=date(2026, 4, 5), index_name="SPX", pe_ntm=Decimal("21.0000")),
                 ValuationRow(trade_date=date(2026, 4, 6), index_name="SPX", pe_ntm=Decimal("21.2000")),
                 ValuationRow(trade_date=date(2026, 4, 7), index_name="SPX", pe_ntm=Decimal("22.0000")),
-                ValuationRow(trade_date=date(2026, 4, 8), index_name="SPX", pe_ntm=Decimal("22.4000")),
+                ValuationRow(
+                    trade_date=date(2026, 4, 8),
+                    index_name="SPX",
+                    pe_ntm=Decimal("22.4000"),
+                    valuation_source="proxy_adjusted",
+                    is_estimated=True,
+                    raw_pe_ntm=Decimal("22.0000"),
+                    based_on_trade_date=date(2026, 4, 7),
+                    proxy_ticker="SP500",
+                    proxy_return=Decimal("0.01818182"),
+                ),
             ]
         if "NDX" in aliases:
             return []

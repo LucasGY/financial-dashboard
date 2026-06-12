@@ -11,6 +11,14 @@ class ValuationTimelineResponse(APIModel):
     display_name: str
     window: str
     as_of_date: Optional[date]
+    estimated_date: Optional[date]
+    estimate_method: str
+    valuation_source: str
+    is_estimated: bool
+    raw_pe_ntm: Optional[float]
+    based_on_trade_date: Optional[date]
+    proxy_ticker: Optional[str]
+    proxy_return: Optional[float]
     current_value: Optional[float]
     percentile: Optional[float]
     series: list[TimeSeriesPoint]

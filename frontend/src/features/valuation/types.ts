@@ -8,6 +8,14 @@ export type ValuationTimelineResponse = {
   display_name: string;
   window: ValuationWindow;
   as_of_date: string | null;
+  estimated_date: string | null;
+  estimate_method: "facset" | "proxy_adjusted" | string;
+  valuation_source: "facset" | "proxy_adjusted" | string;
+  is_estimated: boolean;
+  raw_pe_ntm: number | null;
+  based_on_trade_date: string | null;
+  proxy_ticker: string | null;
+  proxy_return: number | null;
   current_value: number | null;
   percentile: number | null;
   series: TimeSeriesPoint[];
