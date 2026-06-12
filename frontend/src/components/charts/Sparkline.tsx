@@ -6,6 +6,7 @@ type SparklineProps = {
   labels?: string[];
   color?: string;
   height?: number;
+  showLatestValueLine?: boolean;
 };
 
 type Point = {
@@ -27,7 +28,7 @@ const getPathD = (points: Point[]) => {
   return pathD;
 };
 
-export function Sparkline({ data, labels, color = "#2563eb", height = 72 }: SparklineProps) {
+export function Sparkline({ data, labels, color = "#2563eb", height = 72, showLatestValueLine = false }: SparklineProps) {
   const { isZh } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -51,6 +52,7 @@ export function Sparkline({ data, labels, color = "#2563eb", height = 72 }: Spar
   }));
   const pathD = getPathD(points);
   const areaD = `${pathD} L 100,100 L 0,100 Z`;
+  const latestPoint = points[points.length - 1];
 
   const setPosition = (clientX: number) => {
     if (!containerRef.current) {
@@ -106,17 +108,43 @@ export function Sparkline({ data, labels, color = "#2563eb", height = 72 }: Spar
             style={{ filter: `drop-shadow(0px 6px 10px ${color}1f)` }}
           />
 
-          {activePoint ? (
+          {showLatestValueLine ? (
             <line
-              x1={activePoint.x}
-              y1="0"
-              x2={activePoint.x}
-              y2="100"
+              x1="0"
+              y1={latestPoint.y}
+              x2="100"
+              y2={latestPoint.y}
               stroke="#94a3b8"
               strokeWidth="1"
               strokeDasharray="4 5"
+              strokeOpacity="0.9"
               vectorEffect="non-scaling-stroke"
             />
+          ) : null}
+
+          {activePoint ? (
+            <>
+              <line
+                x1={activePoint.x}
+                y1="0"
+                x2={activePoint.x}
+                y2="100"
+                stroke="#94a3b8"
+                strokeWidth="1"
+                strokeDasharray="4 5"
+                vectorEffect="non-scaling-stroke"
+              />
+              <line
+                x1="0"
+                y1={activePoint.y}
+                x2="100"
+                y2={activePoint.y}
+                stroke="#94a3b8"
+                strokeWidth="1"
+                strokeDasharray="4 5"
+                vectorEffect="non-scaling-stroke"
+              />
+            </>
           ) : null}
         </svg>
 

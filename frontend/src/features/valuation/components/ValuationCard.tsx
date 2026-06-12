@@ -70,6 +70,7 @@ export function ValuationCard({ index, title }: ValuationCardProps) {
               labels={data.series.map((item) => (data.window === "1y" ? formatCompactDate(item.trade_date, isZh ? "zh" : "en") : formatMonthDate(item.trade_date, isZh ? "zh" : "en")))}
               color={(data.percentile ?? 0) > 80 ? "#ef4444" : "#2563eb"}
               height={112}
+              showLatestValueLine
             />
           </div>
         </section>
