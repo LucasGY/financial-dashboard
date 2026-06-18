@@ -185,6 +185,19 @@ jobs:
           fi
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/pip install -r requirements.txt
+          FD_SECOND_BRAIN_PATH="$SECOND_BRAIN" .venv/bin/python - <<'PY'
+          import os
+          from app.services.entity_dynamics_service import EntityDynamicsService
+
+          class EmptyRepository:
+            pass
+
+          service = EntityDynamicsService(os.environ["FD_SECOND_BRAIN_PATH"], EmptyRepository())
+          items = service._load_deep_dive("all", None)
+          print(f"Second-brain parsed deep-dive items: {len(items)}")
+          for path in sorted(service._analyses_dir.glob("*.md")):
+            print(f"Second-brain parsed analysis {path.name}: {service._parse_analysis_item(path) is not None}")
+          PY
 
           sudo tee "/etc/systemd/system/$RSS_SERVICE" >/dev/null <<SERVICE
           [Unit]
