@@ -141,6 +141,13 @@ jobs:
             echo "Missing second-brain wiki directories under $SECOND_BRAIN." >&2
             exit 1
           fi
+          touch "$APP_DIR/.env"
+          chmod 600 "$APP_DIR/.env"
+          if grep -q '^FD_SECOND_BRAIN_PATH=' "$APP_DIR/.env"; then
+            sed -i "s|^FD_SECOND_BRAIN_PATH=.*|FD_SECOND_BRAIN_PATH=$SECOND_BRAIN|" "$APP_DIR/.env"
+          else
+            printf '\nFD_SECOND_BRAIN_PATH=%s\n' "$SECOND_BRAIN" >> "$APP_DIR/.env"
+          fi
 
           load_node_runtime
           ensure_command node
