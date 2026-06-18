@@ -141,6 +141,10 @@ jobs:
             echo "Missing second-brain wiki directories under $SECOND_BRAIN." >&2
             exit 1
           fi
+          ANALYSES_COUNT="$(find "$SECOND_BRAIN/wiki/analyses" -maxdepth 1 -type f -name '*.md' | wc -l | tr -d ' ')"
+          HTML_COUNT="$(find "$SECOND_BRAIN/wiki/html" -maxdepth 1 -type f -name '*.html' | wc -l | tr -d ' ')"
+          echo "Second-brain analyses markdown files: $ANALYSES_COUNT"
+          echo "Second-brain HTML artifact files: $HTML_COUNT"
           touch "$APP_DIR/.env"
           chmod 600 "$APP_DIR/.env"
           if grep -q '^FD_SECOND_BRAIN_PATH=' "$APP_DIR/.env"; then
@@ -211,6 +215,7 @@ jobs:
           Environment=FD_SECOND_BRAIN_PATH=$SECOND_BRAIN
           SERVICE_ENV
           sudo systemctl daemon-reload
+          systemctl show "$BACKEND_SERVICE" -p Environment --no-pager
 
           sudo systemctl restart "$BACKEND_SERVICE"
           sudo nginx -t
