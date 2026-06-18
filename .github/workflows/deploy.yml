@@ -141,6 +141,22 @@ jobs:
             echo "Missing second-brain wiki directories under $SECOND_BRAIN." >&2
             exit 1
           fi
+          upsert_second_brain_env() {
+            local env_file="$1"
+            [ -f "$env_file" ] || return 0
+
+            # Repair a previous append without a trailing newline, e.g.
+            # FD_SECOND_BRAIN_PATH=/pathFD_LLM_BASE_URL=https://...
+            perl -0pi -e 's/(FD_SECOND_BRAIN_PATH=[^\r\n]*?)(FD_[A-Z0-9_]+=)/$1\n$2/g' "$env_file"
+            if [ -s "$env_file" ] && [ "$(tail -c 1 "$env_file" | wc -l | tr -d ' ')" = "0" ]; then
+              printf '\n' >> "$env_file"
+            fi
+            if grep -q '^FD_SECOND_BRAIN_PATH=' "$env_file"; then
+              sed -i "s|^FD_SECOND_BRAIN_PATH=.*|FD_SECOND_BRAIN_PATH=$SECOND_BRAIN|" "$env_file"
+            else
+              printf 'FD_SECOND_BRAIN_PATH=%s\n' "$SECOND_BRAIN" >> "$env_file"
+            fi
+          }
           ANALYSES_COUNT="$(find "$SECOND_BRAIN/wiki/analyses" -maxdepth 1 -type f -name '*.md' | wc -l | tr -d ' ')"
           HTML_COUNT="$(find "$SECOND_BRAIN/wiki/html" -maxdepth 1 -type f -name '*.html' | wc -l | tr -d ' ')"
           echo "Second-brain analyses markdown files: $ANALYSES_COUNT"
@@ -153,11 +169,9 @@ jobs:
           done
           touch "$APP_DIR/.env"
           chmod 600 "$APP_DIR/.env"
-          if grep -q '^FD_SECOND_BRAIN_PATH=' "$APP_DIR/.env"; then
-            sed -i "s|^FD_SECOND_BRAIN_PATH=.*|FD_SECOND_BRAIN_PATH=$SECOND_BRAIN|" "$APP_DIR/.env"
-          else
-            printf '\nFD_SECOND_BRAIN_PATH=%s\n' "$SECOND_BRAIN" >> "$APP_DIR/.env"
-          fi
+          upsert_second_brain_env "$APP_DIR/.env"
+          upsert_second_brain_env "$APP_DIR/.db.env"
+          upsert_second_brain_env "$APP_DIR/backend/.db.env"
 
           load_node_runtime
           ensure_command node
