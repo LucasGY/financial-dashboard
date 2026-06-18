@@ -237,6 +237,12 @@ jobs:
           systemctl show "$BACKEND_SERVICE" -p Environment --no-pager
 
           sudo systemctl restart "$BACKEND_SERVICE"
+          sleep 2
+          if command -v curl >/dev/null 2>&1; then
+            echo "Local backend Deep Dive response:"
+            curl -fsS 'http://127.0.0.1:8000/api/v1/entity-dynamics/feed?channel=deep_dive&filter=close_reading&limit=3' | head -c 500 || true
+            echo
+          fi
           sudo nginx -t
           sudo systemctl reload nginx
           REMOTE
