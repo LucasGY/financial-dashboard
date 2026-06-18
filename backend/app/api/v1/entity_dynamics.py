@@ -2,7 +2,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 import httpx
 
 from app.api.dependencies import get_entity_dynamics_service
@@ -47,6 +47,17 @@ def set_source_favorite(
     if result is None:
         raise HTTPException(status_code=404, detail="Source not found")
     return result
+
+
+@router.get("/artifacts/html/{filename}")
+def get_html_artifact(
+    filename: str,
+    service: EntityDynamicsService = Depends(get_entity_dynamics_service),
+) -> FileResponse:
+    target = service.resolve_html_artifact(filename)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    return FileResponse(target, media_type="text/html")
 
 
 @router.get("/media/video")

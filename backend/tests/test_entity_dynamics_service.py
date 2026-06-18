@@ -147,3 +147,80 @@ def test_event_detail_uses_source_assets_when_fetch_event_has_no_primary_source(
 
     assert detail is not None
     assert detail.assets[0]["url"] == "https://pbs.twimg.com/media/a.jpg?format=jpg&name=orig"
+
+
+def test_deep_dive_feed_reads_analysis_notes_with_artifacts(tmp_path):
+    analyses_dir = tmp_path / "wiki" / "analyses"
+    html_dir = tmp_path / "wiki" / "html"
+    analyses_dir.mkdir(parents=True)
+    html_dir.mkdir(parents=True)
+    html_dir.joinpath("amazon-map.html").write_text("<!doctype html><title>Amazon Map</title>", encoding="utf-8")
+    analyses_dir.joinpath("20260616_manual_amazon-map.md").write_text(
+        """---
+type: analysis
+title: Amazon 2025 Shareholder Letter Strategic Map
+title_zh: 亚马逊 2025 股东信战略地图
+date_created: '2026-06-16'
+summary_en: Amazon frames AI capex through the AWS playbook.
+summary_zh: Amazon 用 AWS 剧本解释 AI 资本开支。
+artifact_html: amazon-map.html
+frontend_category: deep_dive
+event_tags:
+  - close_reading
+tags:
+  - amazon
+  - ai_tech
+topic_tags:
+  - ai_capex
+---
+
+# Amazon 2025 Shareholder Letter Strategic Map
+""",
+        encoding="utf-8",
+    )
+    service = EntityDynamicsService(second_brain_path=str(tmp_path), intelligence_feed_repository=FakeRepository())
+
+    response = service.get_feed(channel="deep_dive", filter_key="close_reading")
+
+    assert len(response.items) == 1
+    item = response.items[0]
+    assert item.slug == "deep:20260616_manual_amazon-map"
+    assert item.title == "Amazon 2025 Shareholder Letter Strategic Map"
+    assert item.title_zh == "亚马逊 2025 股东信战略地图"
+    assert item.summary == "Amazon frames AI capex through the AWS playbook."
+    assert item.tldr_zh == "Amazon 用 AWS 剧本解释 AI 资本开支。"
+    assert item.source_platform == "Analysis"
+    assert item.source_url is None
+    assert item.entity_labels == ["Amazon - AMZN"]
+
+
+def test_deep_dive_detail_returns_html_artifact_metadata(tmp_path):
+    analyses_dir = tmp_path / "wiki" / "analyses"
+    html_dir = tmp_path / "wiki" / "html"
+    analyses_dir.mkdir(parents=True)
+    html_dir.mkdir(parents=True)
+    html_dir.joinpath("amazon-map.html").write_text("<!doctype html><title>Amazon Map</title>", encoding="utf-8")
+    analyses_dir.joinpath("20260616_manual_amazon-map.md").write_text(
+        """---
+type: analysis
+title: Amazon 2025 Shareholder Letter Strategic Map
+summary_en: Amazon frames AI capex through the AWS playbook.
+artifact_html: amazon-map.html
+frontend_category: deep_dive
+event_tags: [close_reading]
+entity_ids: [amazon]
+---
+
+# Amazon 2025 Shareholder Letter Strategic Map
+""",
+        encoding="utf-8",
+    )
+    service = EntityDynamicsService(second_brain_path=str(tmp_path), intelligence_feed_repository=FakeRepository())
+
+    detail = service.get_detail("deep:20260616_manual_amazon-map")
+
+    assert detail is not None
+    assert detail.artifact is not None
+    assert detail.artifact.type == "html"
+    assert detail.artifact.title == "Amazon 2025 Shareholder Letter Strategic Map"
+    assert detail.artifact.url == "/api/v1/entity-dynamics/artifacts/html/amazon-map.html"

@@ -16,24 +16,23 @@ export function IntelligenceSidebar({
   onChange: (channel: Channel) => void;
 }) {
   return (
-    <aside className="w-full border-b border-slate-200 bg-white px-3 py-3 dark:border-slate-800 dark:bg-slate-950 lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 lg:border-b-0 lg:border-r">
-      <div className="mb-5 hidden px-2 lg:block">
-        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Workspace</div>
-        <div className="mt-1 text-lg font-bold tracking-tight text-slate-950 dark:text-white">Intelligence Hub</div>
-      </div>
-      <nav className="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
+    <aside className="w-full border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:w-[208px] lg:border-b-0 lg:border-r xl:w-[220px]">
+      <nav className="scrollbar-none flex gap-1.5 overflow-x-auto px-4 py-3 lg:flex-col lg:gap-2 lg:overflow-visible lg:px-4 lg:py-6">
+        <div className="mb-3 hidden px-1 lg:block">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Workspace</div>
+        </div>
         {NAV_ITEMS.map(({ id, label, Icon }) => (
           <button
             key={id}
             onClick={() => onChange(id)}
-            className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-              activeChannel === id
-                ? "bg-slate-900 text-white dark:bg-amber-400 dark:text-slate-950"
-                : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
+            className={`flex min-w-[142px] shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white lg:min-w-0 ${
+              activeChannel === id ? "ring-2 ring-blue-500/40" : ""
             }`}
           >
-            <Icon className="size-4" />
-            {label}
+            <span className="grid size-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              <Icon className="size-3.5" />
+            </span>
+            <span className="truncate text-xs font-bold leading-4">{label}</span>
           </button>
         ))}
       </nav>

@@ -8,8 +8,8 @@ from typing import Optional
 import frontmatter
 from app.repositories.intelligence_feed_repository import IntelligenceFeedRepository
 from app.repositories.models import IntelligenceEventRow, IntelligenceSourceRow
-from app.schemas.entity_dynamics import FavoriteResponse, FeedResponse, IntelligenceItem, IntelligenceSource, SourceDetail
-from app.services.intelligence_taxonomy import entity_labels_for_channel, normalize_event_tags_for_domain
+from app.schemas.entity_dynamics import FavoriteResponse, FeedResponse, IntelligenceArtifact, IntelligenceItem, IntelligenceSource, SourceDetail
+from app.services.intelligence_taxonomy import ENTITY_DISPLAY, entity_labels_for_channel, normalize_event_tags_for_domain
 
 
 class EntityDynamicsService:
@@ -21,6 +21,8 @@ class EntityDynamicsService:
         intelligence_feed_repository: IntelligenceFeedRepository,
     ) -> None:
         self._sources_dir = Path(second_brain_path) / "wiki" / "sources"
+        self._analyses_dir = Path(second_brain_path) / "wiki" / "analyses"
+        self._html_dir = Path(second_brain_path) / "wiki" / "html"
         self._intelligence_feed_repository = intelligence_feed_repository
 
     def get_feed(
@@ -110,21 +112,30 @@ class EntityDynamicsService:
         )
 
     def _load_deep_dive(self, filter_key: str, search: Optional[str]) -> list[IntelligenceItem]:
-        if not self._sources_dir.exists():
-            return []
         items: list[IntelligenceItem] = []
-        for path in sorted(self._sources_dir.glob("*.md"), reverse=True):
-            item = self._parse_deep_dive_item(path)
-            if item is None:
+        for directory, parser in ((self._analyses_dir, self._parse_analysis_item), (self._sources_dir, self._parse_deep_dive_item)):
+            if not directory.exists():
                 continue
-            if filter_key in self._DEEP_DIVE_FILTERS and filter_key != "all" and filter_key not in item.event_tags:
-                continue
-            if search and search.lower() not in f"{item.title} {item.title_zh} {item.summary} {item.tldr_zh}".lower():
-                continue
-            items.append(item)
+            for path in sorted(directory.glob("*.md"), reverse=True):
+                item = parser(path)
+                if item is None:
+                    continue
+                if filter_key in self._DEEP_DIVE_FILTERS and filter_key != "all" and filter_key not in item.event_tags:
+                    continue
+                if search and search.lower() not in f"{item.title} {item.title_zh} {item.summary} {item.tldr_zh}".lower():
+                    continue
+                items.append(item)
         return items
 
     def _get_deep_dive_detail(self, slug: str) -> Optional[SourceDetail]:
+        analysis_target = self._analyses_dir / f"{slug}.md"
+        if analysis_target.exists():
+            item = self._parse_analysis_item(analysis_target)
+            if item is None:
+                return None
+            post = frontmatter.load(analysis_target)
+            return SourceDetail(**item.model_dump(), content=post.content, sources=[], artifact=self._artifact_from_meta(post.metadata, item.title))
+
         target = self._sources_dir / f"{slug}.md"
         if not target.exists():
             return None
@@ -133,6 +144,74 @@ class EntityDynamicsService:
             return None
         post = frontmatter.load(target)
         return SourceDetail(**item.model_dump(), content=post.content, sources=[])
+
+    def resolve_html_artifact(self, filename: str) -> Optional[Path]:
+        if not filename or Path(filename).name != filename or Path(filename).suffix.lower() != ".html":
+            return None
+        target = (self._html_dir / filename).resolve()
+        try:
+            target.relative_to(self._html_dir.resolve())
+        except ValueError:
+            return None
+        if not target.is_file():
+            return None
+        return target
+
+    def _parse_analysis_item(self, path: Path) -> Optional[IntelligenceItem]:
+        try:
+            post = frontmatter.load(path)
+            meta = post.metadata
+            if str(meta.get("type") or "").strip() != "analysis":
+                return None
+            frontend_category = str(meta.get("frontend_category") or "").strip()
+            if frontend_category and frontend_category != "deep_dive":
+                return None
+            entity_ids = self._normalize_tags(meta.get("entity_ids") or meta.get("entity_tags")) or self._known_entity_tags(meta.get("tags"))
+            event_tags = self._normalize_tags(meta.get("event_tags")) or ["close_reading"]
+            source_date = self._normalize_date(meta.get("source_date") or meta.get("date_created") or meta.get("date_ingested"))
+            title = str(meta.get("title") or self._extract_title(post.content))
+            summary_en = str(meta.get("summary_en") or meta.get("summary") or meta.get("tldr_en") or "")
+            summary_zh = str(meta.get("summary_zh") or meta.get("tldr_zh") or "")
+            return IntelligenceItem(
+                id=f"deep:{path.stem}",
+                slug=f"deep:{path.stem}",
+                channel="deep_dive",
+                domain="deep_dive",
+                source_kind="manual",
+                source_platform=str(meta.get("source_platform") or "Analysis"),
+                source_type=str(meta.get("source_type") or "Analysis"),
+                source_name=str(meta.get("source_name") or "Second Brain"),
+                author_name=meta.get("author_name"),
+                source_date=source_date,
+                title=title,
+                title_zh=str(meta.get("title_zh") or ""),
+                summary=summary_en,
+                tldr_zh=summary_zh,
+                tldr_en=summary_en,
+                raw_excerpt=str(meta.get("raw_excerpt") or ""),
+                raw_excerpt_zh=str(meta.get("raw_excerpt_zh") or ""),
+                display_mode="summary",
+                entity_ids=entity_ids,
+                entity_labels=entity_labels_for_channel(entity_ids, "deep_dive"),
+                event_tags=event_tags,
+                topic_tags=self._normalize_tags(meta.get("topic_tags") or meta.get("tags")),
+                importance_score=meta.get("importance_score"),
+                source_count=1,
+                source_url=None,
+                status=str(meta.get("status") or "saved"),
+            )
+        except Exception:
+            return None
+
+    def _artifact_from_meta(self, meta: dict, title: str) -> Optional[IntelligenceArtifact]:
+        filename = str(meta.get("artifact_html") or "").strip()
+        if not self.resolve_html_artifact(filename):
+            return None
+        return IntelligenceArtifact(
+            type="html",
+            title=str(meta.get("artifact_title") or title),
+            url=f"/api/v1/entity-dynamics/artifacts/html/{filename}",
+        )
 
     def _parse_deep_dive_item(self, path: Path) -> Optional[IntelligenceItem]:
         try:
@@ -272,6 +351,10 @@ class EntityDynamicsService:
     @staticmethod
     def _contains_cjk(text: str) -> bool:
         return bool(re.search(r"[\u4e00-\u9fff]", text))
+
+    @staticmethod
+    def _known_entity_tags(val: object) -> list[str]:
+        return [tag for tag in EntityDynamicsService._normalize_tags(val) if tag in ENTITY_DISPLAY]
 
 
 def _event_with_primary_source(event: IntelligenceEventRow, sources: list[IntelligenceSourceRow]) -> IntelligenceEventRow:
