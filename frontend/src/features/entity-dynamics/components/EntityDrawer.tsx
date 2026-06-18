@@ -1,6 +1,7 @@
 import { ArrowLeft, Calendar, ExternalLink, Play, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { labelForEvent, type Language } from "../labels";
 import { useSourceDetail } from "../hooks";
@@ -23,6 +24,23 @@ function getSummary(detail: SourceDetail, language: Language) {
     return rawCandidate;
   }
   return language === "zh" ? detail.tldr_zh || detail.summary || detail.tldr_en : detail.summary || detail.tldr_en || detail.tldr_zh;
+}
+
+function createMarkdownComponents(language: Language): Components {
+  return {
+    code({ className, children, node, ...props }) {
+      const codeLanguage = /language-(\w+)/.exec(className || "")?.[1];
+      const code = String(children).replace(/\n$/, "");
+      if (codeLanguage === "mermaid") {
+        return <MermaidBlock chart={code} language={language} />;
+      }
+      return (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      );
+    },
+  };
 }
 
 interface Props {
@@ -95,6 +113,7 @@ export function EntityDrawer({ slug, language, onClose }: Props) {
 function DetailContent({ detail, language, onOpenImage }: { detail: SourceDetail; language: Language; onOpenImage: (url: string) => void }) {
   const primarySources = detail.sources.filter((source) => source.source_role !== "related_discussion");
   const relatedSources = detail.sources.filter((source) => source.source_role === "related_discussion");
+  const markdownComponents = useMemo(() => createMarkdownComponents(language), [language]);
   const visibleAssetsBySourceId = useMemo(() => {
     const seen = new Set<string>();
     const result = new Map<string, Array<Record<string, unknown>>>();
@@ -145,10 +164,72 @@ function DetailContent({ detail, language, onOpenImage }: { detail: SourceDetail
 
       {detail.sources.length === 0 && detail.content && !detail.artifact && (
         <div className="prose prose-slate max-w-none text-[14px] leading-relaxed dark:prose-invert prose-strong:text-amber-500 dark:prose-strong:text-amber-300">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{preprocessMarkdown(detail.content)}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {preprocessMarkdown(detail.content)}
+          </ReactMarkdown>
         </div>
       )}
     </div>
+  );
+}
+
+function MermaidBlock({ chart, language }: { chart: string; language: Language }) {
+  const renderId = useRef(`mermaid-${Math.random().toString(36).slice(2)}`);
+  const [svg, setSvg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCurrent = true;
+    setSvg(null);
+    setError(null);
+
+    async function renderChart() {
+      try {
+        const mermaid = await import("mermaid");
+        mermaid.default.initialize({
+          startOnLoad: false,
+          securityLevel: "strict",
+          theme: document.documentElement.classList.contains("dark") ? "dark" : "default",
+        });
+        const result = await mermaid.default.render(renderId.current, chart);
+        if (isCurrent) {
+          setSvg(result.svg);
+        }
+      } catch (err) {
+        if (isCurrent) {
+          setError(err instanceof Error ? err.message : "Unable to render Mermaid diagram.");
+        }
+      }
+    }
+
+    renderChart();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [chart]);
+
+  if (error) {
+    return (
+      <div className="not-prose my-4 rounded-md border border-rose-300 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-100">
+        <div className="mb-2 font-semibold">{language === "zh" ? "Mermaid 渲染失败" : "Mermaid render failed"}</div>
+        <div className="mb-3 break-words text-xs opacity-80">{error}</div>
+        <pre className="overflow-x-auto rounded bg-white/70 p-3 text-xs text-slate-900 dark:bg-slate-950/80 dark:text-slate-100">
+          <code>{chart}</code>
+        </pre>
+      </div>
+    );
+  }
+
+  if (!svg) {
+    return <div className="not-prose my-4 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-400">{language === "zh" ? "正在渲染图表..." : "Rendering diagram..."}</div>;
+  }
+
+  return (
+    <div
+      className="not-prose my-4 overflow-x-auto rounded-md border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
   );
 }
 
