@@ -145,6 +145,12 @@ jobs:
           HTML_COUNT="$(find "$SECOND_BRAIN/wiki/html" -maxdepth 1 -type f -name '*.html' | wc -l | tr -d ' ')"
           echo "Second-brain analyses markdown files: $ANALYSES_COUNT"
           echo "Second-brain HTML artifact files: $HTML_COUNT"
+          find "$SECOND_BRAIN/wiki/html" -maxdepth 1 -type f -name '*.html' -printf 'Second-brain HTML artifact: %f\n'
+          for analysis_file in "$SECOND_BRAIN"/wiki/analyses/*.md; do
+            [ -e "$analysis_file" ] || continue
+            echo "Second-brain analysis frontmatter: $(basename "$analysis_file")"
+            sed -n '1,/^---$/p' "$analysis_file" | grep -E '^(type|frontend_category|event_tags|artifact_html):' || true
+          done
           touch "$APP_DIR/.env"
           chmod 600 "$APP_DIR/.env"
           if grep -q '^FD_SECOND_BRAIN_PATH=' "$APP_DIR/.env"; then
