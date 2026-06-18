@@ -36,6 +36,12 @@ class IntelligenceSource(BaseModel):
     raw_content_zh: str = ""
 
 
+class IntelligenceArtifact(BaseModel):
+    type: Literal["html"]
+    title: str = ""
+    url: str
+
+
 class IntelligenceItem(BaseModel):
     id: str
     slug: str
@@ -79,6 +85,7 @@ class FeedResponse(BaseModel):
 class SourceDetail(IntelligenceItem):
     content: str
     sources: list[IntelligenceSource] = []
+    artifact: Optional[IntelligenceArtifact] = None
 
 
 class FavoriteRequest(BaseModel):

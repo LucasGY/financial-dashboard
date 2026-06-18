@@ -1,5 +1,5 @@
 from app.api.dependencies import get_entity_dynamics_service
-from app.schemas.entity_dynamics import FeedResponse, IntelligenceItem, IntelligenceSource, SourceDetail
+from app.schemas.entity_dynamics import FeedResponse, IntelligenceArtifact, IntelligenceItem, IntelligenceSource, SourceDetail
 
 
 class FakeEntityDynamicsService:
@@ -7,6 +7,7 @@ class FakeEntityDynamicsService:
         self.last_min_score = None
         self.last_entity = None
         self.last_favorite = None
+        self.artifact_path = None
 
     def get_feed(self, channel="ai", filter_key="all", search=None, min_score=None, entity=None, limit=35, cursor=None):
         self.last_min_score = min_score
@@ -73,6 +74,7 @@ class FakeEntityDynamicsService:
             author_avatar_url="https://unavatar.io/x/example",
             status="new",
             content="Raw source text",
+            artifact=IntelligenceArtifact(type="html", title="Artifact", url="/api/v1/entity-dynamics/artifacts/html/artifact.html"),
             sources=[
                 IntelligenceSource(
                     id="source:1",
@@ -104,6 +106,11 @@ class FakeEntityDynamicsService:
         self.last_favorite = (slug, is_favorited)
         return {"slug": slug, "is_favorited": is_favorited}
 
+    def resolve_html_artifact(self, filename):
+        if filename == "artifact.html":
+            return self.artifact_path
+        return None
+
 
 def test_entity_dynamics_feed_contract(client):
     fake_service = FakeEntityDynamicsService()
@@ -132,6 +139,7 @@ def test_entity_dynamics_detail_contract(client):
     payload = response.json()
     assert payload["id"] == "event:1"
     assert payload["content"] == "Raw source text"
+    assert payload["artifact"]["url"] == "/api/v1/entity-dynamics/artifacts/html/artifact.html"
     assert len(payload["sources"]) == 1
     assert payload["sources"][0]["source_role"] == "related_discussion"
     assert payload["sources"][0]["assets"][0]["url"] == "https://example.test/a.jpg"
@@ -148,3 +156,25 @@ def test_entity_dynamics_favorite_contract(client):
     assert response.status_code == 200
     assert response.json() == {"slug": "event:1", "is_favorited": True}
     assert fake_service.last_favorite == ("event:1", True)
+
+
+def test_entity_dynamics_html_artifact_contract(client, tmp_path):
+    artifact_path = tmp_path / "artifact.html"
+    artifact_path.write_text("<!doctype html><title>Artifact</title>", encoding="utf-8")
+    fake_service = FakeEntityDynamicsService()
+    fake_service.artifact_path = artifact_path
+    client.app.dependency_overrides[get_entity_dynamics_service] = lambda: fake_service
+
+    response = client.get("/api/v1/entity-dynamics/artifacts/html/artifact.html")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "Artifact" in response.text
+
+
+def test_entity_dynamics_html_artifact_returns_404_for_unknown_file(client):
+    client.app.dependency_overrides[get_entity_dynamics_service] = lambda: FakeEntityDynamicsService()
+
+    response = client.get("/api/v1/entity-dynamics/artifacts/html/missing.html")
+
+    assert response.status_code == 404

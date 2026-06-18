@@ -126,13 +126,13 @@ export function EntityFeed({ channel, filter, entity, search, minScore, language
         {dates.map((date) => (
           <section key={date} className="border-b border-slate-200 py-5 last:border-b-0 dark:border-slate-800">
             <div className="mb-3 text-xs font-semibold text-slate-400 dark:text-slate-500">{date}</div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {groupedItems[date].map((item) => (
-                <div key={item.id} className="grid gap-3 md:grid-cols-[64px_22px_minmax(0,1fr)]">
-                  <div className="pt-4 text-xs font-mono text-slate-400 dark:text-slate-500">{formatShanghaiTime(item.source_date)}</div>
+                <div key={item.id} className="grid gap-3 md:grid-cols-[72px_22px_minmax(0,1fr)]">
+                  <div className="whitespace-nowrap pt-4 font-mono text-[11px] font-bold tabular-nums text-slate-500 dark:text-slate-200">{formatShanghaiTime(item.source_date)}</div>
                   <div className="relative hidden md:block">
                     <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-slate-200 dark:bg-slate-800" />
-                    <div className="absolute left-1/2 top-5 size-2.5 -translate-x-1/2 rounded-full border-2 border-white bg-slate-400 dark:border-slate-950 dark:bg-amber-400" />
+                    <div className="absolute left-1/2 top-5 size-2.5 -translate-x-1/2 rounded-full border-2 border-white bg-slate-400 dark:border-slate-950 dark:bg-teal-400" />
                   </div>
                   <FeedCard
                     item={item}
@@ -238,10 +238,10 @@ function FeedCard({
           openOriginalOrDetail();
         }
       }}
-      className={`block w-full cursor-pointer rounded-md border px-4 py-3 text-left transition-colors ${
+      className={`block w-full cursor-pointer rounded-2xl border px-4 py-3 text-left transition-colors sm:px-5 sm:py-4 ${
         isSelected
           ? "border-slate-900 bg-slate-900 text-white dark:border-amber-400 dark:bg-amber-400/10 dark:text-slate-100"
-          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-900/80"
+          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:border-slate-700 dark:hover:bg-slate-900"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -271,7 +271,7 @@ function FeedCard({
             className={`grid size-7 place-items-center rounded-md border transition-colors ${
               item.is_favorited
                 ? "border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-400/40 dark:bg-amber-400/15 dark:text-amber-200"
-                : "border-slate-200 bg-slate-50 text-slate-400 hover:text-amber-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500 dark:hover:text-amber-300"
+                : "border-slate-200 bg-slate-50 text-slate-400 hover:text-amber-500 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-500 dark:hover:text-amber-300"
             }`}
           >
             <Star className={`size-3.5 ${item.is_favorited ? "fill-current" : ""}`} />
@@ -283,7 +283,7 @@ function FeedCard({
                   ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-200"
                   : item.importance_score >= 60
                     ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/15 dark:text-amber-200"
-                    : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                    : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400"
               }`}
             >
               {item.importance_score}
@@ -335,7 +335,7 @@ function FeedCard({
             className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
               isSelected
                 ? "bg-white/10 text-white dark:bg-amber-400/15 dark:text-amber-200"
-                : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                : "bg-slate-100 text-slate-700 dark:bg-slate-800/90 dark:text-slate-300"
             }`}
           >
             {tag}
@@ -347,7 +347,7 @@ function FeedCard({
             className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
               isSelected
                 ? "border-white/20 text-slate-100 dark:border-amber-400/30 dark:text-amber-200"
-                : "border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
+                : "border-slate-200 text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400"
             }`}
           >
             {labelForEvent(tag, language)}

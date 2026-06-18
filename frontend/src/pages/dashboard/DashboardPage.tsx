@@ -1,4 +1,4 @@
-import { Activity, BarChart2, BrainCircuit, Calculator, LineChart, Radio, TrendingUp } from "lucide-react";
+import { Activity, ArrowUpRight, BarChart2, BrainCircuit, Calculator, LineChart, Radio, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../app/language";
 import { AsyncState } from "../../components/ui/AsyncState";
@@ -13,6 +13,45 @@ import { ValuationCard } from "../../features/valuation/components/ValuationCard
 import { PriceAttributionCard } from "../../features/valuation/components/PriceAttributionCard";
 import { DrawdownScenarioCard } from "../../features/valuation/components/DrawdownScenarioCard";
 
+const DASHBOARD_NAV_ITEMS = [
+  {
+    id: "overview",
+    Icon: Activity,
+    label: { zh: "总览", en: "Overview" },
+    description: { zh: "市场全景终端", en: "Market terminal" },
+  },
+  {
+    id: "market-sentiment",
+    Icon: TrendingUp,
+    label: { zh: "市场情绪", en: "Market Sentiment" },
+    description: { zh: "恐贪 / VIX / 宽度", en: "Fear & Greed / VIX / Breadth" },
+  },
+  {
+    id: "valuation",
+    Icon: BarChart2,
+    label: { zh: "核心估值", en: "Valuation" },
+    description: { zh: "SPX / NDX / 归因", en: "SPX / NDX / Attribution" },
+  },
+  {
+    id: "drawdown-levels",
+    Icon: Calculator,
+    label: { zh: "回撤点位", en: "Drawdown Levels" },
+    description: { zh: "SPY / QQQ 档位", en: "SPY / QQQ levels" },
+  },
+  {
+    id: "regime-backtest",
+    Icon: LineChart,
+    label: { zh: "状态回测", en: "Regime Backtest" },
+    description: { zh: "历史近邻表现", en: "Historical analogs" },
+  },
+  {
+    id: "strategy-lab",
+    Icon: BrainCircuit,
+    label: { zh: "策略实验室", en: "Strategy Lab" },
+    description: { zh: "自然语言策略", en: "Natural language strategy" },
+  },
+] as const;
+
 export function DashboardPage() {
   const { isZh } = useLanguage();
   const { data, error, isLoading } = useSentimentData();
@@ -21,49 +60,23 @@ export function DashboardPage() {
     : [];
   const isEmpty = !data || (!data.fearGreedTrend.series.length && !data.volatilityTrend.vix_series.length && breadthCards.length === 0);
 
-  return (
-    <main className="min-h-screen px-4 py-6 transition-colors dark:bg-slate-950 dark:text-slate-100 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <header className="overflow-hidden rounded-[32px] border border-white/70 bg-[linear-gradient(135deg,#0f172a_0%,#172554_48%,#1d4ed8_100%)] px-6 py-7 text-white shadow-panel dark:!border-slate-800 dark:bg-[linear-gradient(135deg,#020617_0%,#111827_46%,#78350f_100%)] sm:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">
-                <Activity className="size-3.5" />
-                {isZh ? "金融仪表盘" : "Financial Dashboard"}
-              </div>
-              <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-                {isZh ? "市场全景终端" : "Market Overview Terminal"}
-              </h1>
-              <p className="mt-3 text-sm leading-6 text-blue-100 sm:text-base">
-                {isZh
-                  ? "实时情绪监控与核心宽基估值追踪，直接消费后端统一口径接口，减少首屏判断成本。"
-                  : "Real-time sentiment monitoring and core index valuation tracking, powered by unified backend APIs for faster first-screen decisions."}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:max-w-sm lg:max-w-none lg:grid-cols-3">
-              <div className="rounded-2xl border border-white/12 bg-white/10 px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.18em] text-blue-100">{isZh ? "情绪模块" : "Sentiment"}</div>
-                <div className="mt-2 text-lg font-semibold">Fear &amp; Greed / VIX</div>
-              </div>
-              <div className="rounded-2xl border border-white/12 bg-white/10 px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.18em] text-blue-100">{isZh ? "估值模块" : "Valuation"}</div>
-                <div className="mt-2 text-lg font-semibold">SPX / NDX Timeline</div>
-              </div>
-              <Link
-                to="/entities"
-                className="col-span-2 lg:col-span-1 rounded-2xl border border-white/12 bg-white/10 px-4 py-3 hover:bg-white/20 transition-colors"
-              >
-                <div className="flex items-center gap-1.5 text-xs uppercase tracking-[0.18em] text-blue-100">
-                  <Radio className="size-3" />
-                  {isZh ? "实体追踪" : "Entity Tracking"}
-                </div>
-                <div className="mt-2 text-lg font-semibold">{isZh ? "实体动态 ->" : "Entity Dynamics ->"}</div>
-              </Link>
-            </div>
-          </div>
-        </header>
+  const scrollToSection = (sectionId: string) => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
-        <section className="space-y-5">
+  return (
+    <main className="min-h-screen transition-colors dark:bg-slate-950 dark:text-slate-100">
+      <div className="lg:pl-[208px] xl:pl-[220px]">
+        <DashboardSideNav isZh={isZh} onNavigate={scrollToSection} />
+
+        <div className="min-w-0 space-y-8 px-4 py-6 sm:px-6 lg:px-8">
+          <header id="overview" className="scroll-mt-24 border-b border-slate-200 pb-4 dark:border-slate-800">
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-3xl">
+              {isZh ? "市场全景终端" : "Market Overview Terminal"}
+            </h1>
+          </header>
+
+        <section id="market-sentiment" className="scroll-mt-24 space-y-5">
           <SectionTitle
             title={isZh ? "1. 市场情绪" : "1. Market Sentiment"}
             subtitle={isZh ? "首屏聚合展示风险偏好、波动率结构和市场内部参与度。" : "A first-screen view of risk appetite, volatility structure, and market participation."}
@@ -94,7 +107,7 @@ export function DashboardPage() {
           </AsyncState>
         </section>
 
-        <section className="space-y-5">
+        <section id="valuation" className="scroll-mt-24 space-y-5">
           <SectionTitle
             title={isZh ? "2. 核心指数估值" : "2. Core Index Valuation"}
             subtitle={isZh ? "窗口切换完全以后端 timeline 结果为准，不在前端重复计算分位。" : "Window switches use backend timeline results directly, with no duplicate percentile calculation in the frontend."}
@@ -109,7 +122,7 @@ export function DashboardPage() {
           <PriceAttributionCard />
         </section>
 
-        <section className="space-y-5">
+        <section id="drawdown-levels" className="scroll-mt-24 space-y-5">
           <SectionTitle
             title={isZh ? "3. 回撤点位计算" : "3. Drawdown Level Calculator"}
             subtitle={
@@ -124,7 +137,7 @@ export function DashboardPage() {
           <DrawdownScenarioCard />
         </section>
 
-        <section className="space-y-5">
+        <section id="regime-backtest" className="scroll-mt-24 space-y-5">
           <SectionTitle
             title={isZh ? "4. 当前状态回测" : "4. Current Regime Backtest"}
             subtitle={
@@ -139,7 +152,7 @@ export function DashboardPage() {
           <RegimeStatsPanel />
         </section>
 
-        <section className="space-y-5">
+        <section id="strategy-lab" className="scroll-mt-24 space-y-5">
           <SectionTitle
             title="5. Strategy Lab"
             subtitle={
@@ -153,7 +166,51 @@ export function DashboardPage() {
 
           <StrategyLabPanel />
         </section>
+        </div>
       </div>
     </main>
+  );
+}
+
+function DashboardSideNav({ isZh, onNavigate }: { isZh: boolean; onNavigate: (sectionId: string) => void }) {
+  return (
+    <aside className="border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:w-[208px] lg:border-b-0 lg:border-r xl:w-[220px]">
+      <nav className="scrollbar-none overflow-x-auto px-4 py-3 lg:overflow-visible lg:px-4 lg:py-6">
+        <div className="mb-3 hidden px-1 lg:block">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{isZh ? "工作区导航" : "Workspace"}</div>
+        </div>
+        <div className="flex gap-1.5 lg:flex-col lg:gap-2">
+          {DASHBOARD_NAV_ITEMS.map(({ id, Icon, label, description }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onNavigate(id)}
+              className="flex min-w-[142px] shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:hover:bg-slate-900 lg:min-w-0"
+            >
+              <span className="grid size-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                <Icon className="size-3.5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-xs font-bold leading-4 text-slate-900 dark:text-slate-100">{isZh ? label.zh : label.en}</span>
+                <span className="block truncate text-[10px] leading-4 text-slate-500 dark:text-slate-400">{isZh ? description.zh : description.en}</span>
+              </span>
+            </button>
+          ))}
+          <Link
+            to="/entities"
+            className="flex min-w-[152px] shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:hover:bg-slate-900 lg:mt-2 lg:min-w-0 lg:border-t lg:border-slate-200 lg:pt-3 dark:lg:border-slate-800"
+          >
+            <span className="grid size-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              <Radio className="size-3.5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-bold leading-4 text-slate-900 dark:text-slate-100">{isZh ? "情报中心" : "Intelligence Hub"}</span>
+              <span className="block truncate text-[10px] leading-4 text-slate-500 dark:text-slate-400">{isZh ? "打开 Hub" : "Open Hub"}</span>
+            </span>
+            <ArrowUpRight className="size-3 shrink-0 text-slate-400" />
+          </Link>
+        </div>
+      </nav>
+    </aside>
   );
 }

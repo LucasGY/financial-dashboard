@@ -78,9 +78,16 @@ export interface IntelligenceSource {
   raw_content_zh: string;
 }
 
+export interface IntelligenceArtifact {
+  type: "html";
+  title: string;
+  url: string;
+}
+
 export interface SourceDetail extends FeedItem {
   content: string;
   sources: IntelligenceSource[];
+  artifact: IntelligenceArtifact | null;
 }
 
 export interface FavoriteResponse {

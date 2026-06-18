@@ -58,16 +58,18 @@ export function EntitiesPage() {
     <div className="min-h-screen bg-[#f8fafc] transition-colors dark:bg-slate-950 dark:text-slate-100">
       <IntelligenceSidebar activeChannel={activeChannel} onChange={setActiveChannel} />
 
-      <main className="lg:pl-64">
-        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-          <div className="mb-5 border-b border-slate-200 pb-5 dark:border-slate-800">
-            <div>
-              <Link to="/" className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
-                <ArrowLeft className="size-3.5" />
+      <main className="lg:pl-[208px] xl:pl-[220px]">
+        <div className="px-4 py-5 sm:px-6 lg:px-8">
+          <div className="mb-4 border-b border-slate-200 pb-4 dark:border-slate-800">
+            <div className="min-w-0">
+              <Link to="/" className="mb-3 inline-flex items-center gap-2 text-base font-bold text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+                <ArrowLeft className="size-5" />
                 {language === "zh" ? "返回市场全景" : "Back to dashboard"}
               </Link>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">{channelCopy.title}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">{channelCopy.description[language]}</p>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <h1 className="font-display text-3xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-4xl">{channelCopy.title}</h1>
+                <p className="text-sm font-semibold leading-5 text-slate-500 dark:text-slate-400 lg:whitespace-nowrap">{channelCopy.description[language]}</p>
+              </div>
             </div>
           </div>
 

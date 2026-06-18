@@ -37,10 +37,10 @@ export function EntityDrawer({ slug, language, onClose }: Props) {
 
   return (
     <>
-      {slug && <div className="fixed inset-0 z-40 bg-slate-900/10 backdrop-blur-sm dark:bg-black/45 lg:left-64" onClick={onClose} />}
+      {slug && <div className="fixed inset-0 z-40 bg-slate-900/10 backdrop-blur-sm dark:bg-black/45 lg:left-[208px] xl:left-[220px]" onClick={onClose} />}
 
       <div
-        className={`fixed right-0 top-0 z-50 flex h-full w-full transform flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-slate-950 dark:text-slate-100 dark:shadow-black/50 lg:left-64 lg:w-auto ${
+        className={`fixed right-0 top-0 z-50 flex h-full w-full transform flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-slate-950 dark:text-slate-100 dark:shadow-black/50 lg:left-[208px] lg:w-auto xl:left-[220px] ${
           slug ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -138,15 +138,38 @@ function DetailContent({ detail, language, onOpenImage }: { detail: SourceDetail
         </div>
       )}
 
+      {detail.artifact?.type === "html" && <HtmlArtifactFrame title={detail.artifact.title || getTitle(detail, language)} url={detail.artifact.url} language={language} />}
+
       {primarySources.length > 0 && <SourceSection title={language === "zh" ? "主来源" : "Primary sources"} sources={primarySources} visibleAssetsBySourceId={visibleAssetsBySourceId} language={language} onOpenImage={onOpenImage} />}
       {relatedSources.length > 0 && <SourceSection title={language === "zh" ? "关联讨论" : "Related discussions"} sources={relatedSources} visibleAssetsBySourceId={visibleAssetsBySourceId} language={language} onOpenImage={onOpenImage} />}
 
-      {detail.sources.length === 0 && detail.content && (
+      {detail.sources.length === 0 && detail.content && !detail.artifact && (
         <div className="prose prose-slate max-w-none text-[14px] leading-relaxed dark:prose-invert prose-strong:text-amber-500 dark:prose-strong:text-amber-300">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{preprocessMarkdown(detail.content)}</ReactMarkdown>
         </div>
       )}
     </div>
+  );
+}
+
+function HtmlArtifactFrame({ title, url, language }: { title: string; url: string; language: Language }) {
+  return (
+    <section className="mb-7 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/60">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+        <h2 className="text-sm font-bold text-slate-900 dark:text-white">{language === "zh" ? "HTML 分析图" : "HTML artifact"}</h2>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-blue-500 hover:underline dark:text-amber-300">
+          {language === "zh" ? "全页打开" : "Open full page"}
+          <ExternalLink className="size-3" />
+        </a>
+      </div>
+      <iframe
+        src={url}
+        title={title}
+        loading="lazy"
+        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+        className="h-[78vh] min-h-[620px] w-full bg-white"
+      />
+    </section>
   );
 }
 

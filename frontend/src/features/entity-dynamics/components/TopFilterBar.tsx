@@ -18,9 +18,9 @@ const FILTERS: Record<Channel, { id: string; label: Record<Language, string> }[]
     { id: "all", label: { zh: "全部", en: "All" } },
   ],
   deep_dive: [
+    { id: "close_reading", label: { zh: labelForEvent("close_reading", "zh"), en: labelForEvent("close_reading", "en") } },
     { id: "interview", label: { zh: labelForEvent("interview", "zh"), en: labelForEvent("interview", "en") } },
     { id: "manual_saved", label: { zh: labelForEvent("manual_saved", "zh"), en: labelForEvent("manual_saved", "en") } },
-    { id: "close_reading", label: { zh: labelForEvent("close_reading", "zh"), en: labelForEvent("close_reading", "en") } },
   ],
 };
 
@@ -72,19 +72,22 @@ export function TopFilterBar({
   onSearchChange: (search: string) => void;
   onMinScoreChange: (score: number) => void;
 }) {
+  const activePill = "bg-amber-400 text-slate-950";
+  const inactivePill = "bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900/90 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white";
+
   return (
     <div className="border-b border-slate-200 bg-[#f8fafc]/95 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-wrap gap-1.5">
           {channel === "finance" ? (
             <>
               <button
                 type="button"
                 onClick={() => onFilterChange(activeFilter === "favorite" ? "all" : "favorite")}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                   activeFilter === "favorite"
-                    ? "bg-slate-900 text-white dark:bg-amber-400 dark:text-slate-950"
-                    : "bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white"
+                    ? activePill
+                    : inactivePill
                 }`}
               >
                 {language === "zh" ? "已收藏" : "Saved"}
@@ -93,10 +96,10 @@ export function TopFilterBar({
                 <button
                   key={entity.id}
                   onClick={() => onEntityChange(entity.id)}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                     activeEntity === entity.id
-                      ? "bg-slate-900 text-white dark:bg-amber-400 dark:text-slate-950"
-                      : "bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white"
+                      ? activePill
+                      : inactivePill
                   }`}
                 >
                   {entity.label}
@@ -105,7 +108,7 @@ export function TopFilterBar({
               <select
                 value={FINANCE_OTHER_ENTITIES.some((entity) => entity.id === activeEntity) ? activeEntity : "more"}
                 onChange={(event) => onEntityChange(event.target.value === "more" ? "all" : event.target.value)}
-                className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 outline-none dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-300"
               >
                 <option value="more">{language === "zh" ? "其他实体" : "More"}</option>
                 {FINANCE_OTHER_ENTITIES.map((entity) => (
@@ -120,10 +123,10 @@ export function TopFilterBar({
               <button
                 key={filter.id}
                 onClick={() => onFilterChange(filter.id)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                   activeFilter === filter.id
-                    ? "bg-slate-900 text-white dark:bg-amber-400 dark:text-slate-950"
-                    : "bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white"
+                    ? activePill
+                    : inactivePill
                 }`}
               >
                 {filter.label[language]}
@@ -132,8 +135,8 @@ export function TopFilterBar({
           )}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <label className="flex min-w-0 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">
-            <Search className="size-4 shrink-0" />
+          <label className="flex min-w-0 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-400">
+            <Search className="size-3.5 shrink-0" />
             <input
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
@@ -141,7 +144,7 @@ export function TopFilterBar({
               className="min-w-0 flex-1 bg-transparent text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
             />
           </label>
-          <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center gap-2.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900/90 dark:text-slate-400">
             <span className="whitespace-nowrap">{language === "zh" ? "最低分" : "Min"}</span>
             <ScoreSlider value={minScore} language={language} onChange={onMinScoreChange} />
           </div>
