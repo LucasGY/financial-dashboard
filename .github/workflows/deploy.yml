@@ -185,6 +185,12 @@ jobs:
           fi
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/pip install -r requirements.txt
+          .venv/bin/python - <<'PY'
+          from app.core.config import get_settings
+
+          settings = get_settings()
+          print(f"Backend settings second_brain_path: {settings.second_brain_path}")
+          PY
           FD_SECOND_BRAIN_PATH="$SECOND_BRAIN" .venv/bin/python - <<'PY'
           import os
           from app.services.entity_dynamics_service import EntityDynamicsService
@@ -235,9 +241,19 @@ jobs:
           SERVICE_ENV
           sudo systemctl daemon-reload
           systemctl show "$BACKEND_SERVICE" -p Environment --no-pager
+          systemctl show "$BACKEND_SERVICE" -p FragmentPath -p DropInPaths -p ExecStart -p WorkingDirectory -p MainPID --no-pager
+          sudo systemctl cat "$BACKEND_SERVICE"
 
           sudo systemctl restart "$BACKEND_SERVICE"
           sleep 2
+          BACKEND_PID="$(systemctl show "$BACKEND_SERVICE" -p MainPID --value)"
+          echo "Backend service MainPID after restart: $BACKEND_PID"
+          if [ "$BACKEND_PID" != "0" ] && [ -r "/proc/$BACKEND_PID/environ" ]; then
+            echo "Backend process second-brain env:"
+            sudo tr '\0' '\n' <"/proc/$BACKEND_PID/environ" | grep -E '^(FD_SECOND_BRAIN_PATH|SECOND_BRAIN_PATH)=' || true
+            echo "Backend process cwd:"
+            sudo readlink -f "/proc/$BACKEND_PID/cwd" || true
+          fi
           if command -v curl >/dev/null 2>&1; then
             echo "Local backend Deep Dive response:"
             curl -fsS 'http://127.0.0.1:8000/api/v1/entity-dynamics/feed?channel=deep_dive&filter=close_reading&limit=3' | head -c 500 || true
