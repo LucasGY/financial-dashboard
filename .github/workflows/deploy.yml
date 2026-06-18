@@ -59,6 +59,7 @@ jobs:
       BACKEND_SERVICE_NAME: ${{ vars.BACKEND_SERVICE_NAME }}
       FRONTEND_WEB_ROOT: ${{ vars.FRONTEND_WEB_ROOT }}
       RSS_INGEST_TIMER_NAME: ${{ vars.RSS_INGEST_TIMER_NAME }}
+      SECOND_BRAIN_PATH: ${{ vars.SECOND_BRAIN_PATH }}
       REPOSITORY_URL: https://github.com/${{ github.repository }}.git
 
     steps:
@@ -75,23 +76,26 @@ jobs:
           BACKEND_SERVICE_VALUE="${BACKEND_SERVICE_NAME:-}"
           FRONTEND_WEB_ROOT_VALUE="${FRONTEND_WEB_ROOT:-}"
           RSS_INGEST_TIMER_VALUE="${RSS_INGEST_TIMER_NAME:-}"
+          SECOND_BRAIN_PATH_VALUE="${SECOND_BRAIN_PATH:-}"
           REPOSITORY_URL_VALUE="$REPOSITORY_URL"
           APP_DIR_ESCAPED="$(printf '%q' "$APP_DIR_VALUE")"
           BACKEND_SERVICE_ESCAPED="$(printf '%q' "$BACKEND_SERVICE_VALUE")"
           FRONTEND_WEB_ROOT_ESCAPED="$(printf '%q' "$FRONTEND_WEB_ROOT_VALUE")"
           RSS_INGEST_TIMER_ESCAPED="$(printf '%q' "$RSS_INGEST_TIMER_VALUE")"
+          SECOND_BRAIN_PATH_ESCAPED="$(printf '%q' "$SECOND_BRAIN_PATH_VALUE")"
           REPOSITORY_URL_ESCAPED="$(printf '%q' "$REPOSITORY_URL_VALUE")"
 
           ssh -i ~/.ssh/deploy_key \
             -o IdentitiesOnly=yes \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "SERVER_APP_DIR=$APP_DIR_ESCAPED BACKEND_SERVICE_NAME=$BACKEND_SERVICE_ESCAPED FRONTEND_WEB_ROOT=$FRONTEND_WEB_ROOT_ESCAPED RSS_INGEST_TIMER_NAME=$RSS_INGEST_TIMER_ESCAPED REPOSITORY_URL=$REPOSITORY_URL_ESCAPED bash -se" <<'REMOTE'
+            "SERVER_APP_DIR=$APP_DIR_ESCAPED BACKEND_SERVICE_NAME=$BACKEND_SERVICE_ESCAPED FRONTEND_WEB_ROOT=$FRONTEND_WEB_ROOT_ESCAPED RSS_INGEST_TIMER_NAME=$RSS_INGEST_TIMER_ESCAPED SECOND_BRAIN_PATH=$SECOND_BRAIN_PATH_ESCAPED REPOSITORY_URL=$REPOSITORY_URL_ESCAPED bash -se" <<'REMOTE'
           set -euo pipefail
 
           APP_DIR="${SERVER_APP_DIR:-/opt/financial-dashboard}"
           BACKEND_SERVICE="${BACKEND_SERVICE_NAME:-financial-dashboard-backend}"
           FRONTEND_ROOT="${FRONTEND_WEB_ROOT:-}"
           RSS_TIMER="${RSS_INGEST_TIMER_NAME:-financial-dashboard-rss-ingest}"
+          SECOND_BRAIN="${SECOND_BRAIN_PATH:-/root/.openclaw/second-brain}"
           RSS_SERVICE="${RSS_TIMER}.service"
           RSS_TIMER_UNIT="${RSS_TIMER}.timer"
 
@@ -131,6 +135,10 @@ jobs:
           fi
           if [ ! -f "$APP_DIR/.rss" ]; then
             echo "Missing RSS source file. Create $APP_DIR/.rss on the server; it is intentionally not committed." >&2
+            exit 1
+          fi
+          if [ ! -d "$SECOND_BRAIN/wiki/analyses" ] || [ ! -d "$SECOND_BRAIN/wiki/html" ]; then
+            echo "Missing second-brain wiki directories under $SECOND_BRAIN." >&2
             exit 1
           fi
 
@@ -189,6 +197,13 @@ jobs:
 
           sudo systemctl daemon-reload
           sudo systemctl enable --now "$RSS_TIMER_UNIT"
+
+          sudo install -d "/etc/systemd/system/$BACKEND_SERVICE.service.d"
+          sudo tee "/etc/systemd/system/$BACKEND_SERVICE.service.d/second-brain.conf" >/dev/null <<SERVICE_ENV
+          [Service]
+          Environment=FD_SECOND_BRAIN_PATH=$SECOND_BRAIN
+          SERVICE_ENV
+          sudo systemctl daemon-reload
 
           sudo systemctl restart "$BACKEND_SERVICE"
           sudo nginx -t
